@@ -71,6 +71,34 @@ function resetAll() {
     render();
 }
 
+async function resetToDefault() {
+    if (!confirm("לאפס את כל הנתונים ולהחזיר לגרסה העדכנית?")) return;
+
+    /* 1. Clear localStorage */
+    localStorage.clear();
+
+    /* 2. Delete service worker caches */
+    if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+    }
+
+    /* 3. Unregister all service workers */
+    if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (let reg of regs) {
+            await reg.unregister();
+        }
+    }
+
+    /* 4. FORCE hard reload from GitHub Pages */
+    const freshURL = "https://amihayb.github.io/trucks-counter/";
+
+    window.location.replace(freshURL);
+}
+
+
+
 function resetCounter(index) {
     counters[index].value = 0;
     render();

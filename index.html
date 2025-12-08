@@ -10,6 +10,15 @@
 
 <meta name="theme-color" content="#1b1b1b">
 </head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WH800FFF02"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-WH800FFF02');
+</script>
 <body>
 
 <h2>ספירת משאיות</h2>
@@ -33,6 +42,7 @@
     <button class="top-btn" onclick="addCounter()">➕ הוסף מונה</button>
     <button class="top-btn danger" onclick="removeLastCounter()">🗑 מחק אחרון</button>
     <button class="top-btn danger" onclick="resetAll()">🔄 איפוס כל המונים</button>
+	<button class="top-btn danger" onclick="resetToDefault()">איפוס לברירת מחדל</button>
 </div>
 
 
