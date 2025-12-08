@@ -1,6 +1,6 @@
 {
   "name": "ספירת משאיות",
-  "short_name": "משאיות",
+  "short_name": "Trucks Counter",
   "start_url": "./",
   "display": "fullscreen",
   "background_color": "#1b1b1b",
