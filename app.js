@@ -1,8 +1,8 @@
 // Load counters or defaults
 let counters = JSON.parse(localStorage.getItem("counters")) || [
-    { name: "מונה 1", value: 0 },
-    { name: "מונה 2", value: 0 },
-    { name: "מונה 3", value: 0 }
+    { name: "WFP", value: 0 },
+    { name: "סקטור", value: 0 },
+    { name: "WCK", value: 0 }
 ];
 
 function render() {
