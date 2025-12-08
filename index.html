@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ספירת משאיות</title>
+
+<link rel="stylesheet" href="./style.css">
+<link rel="manifest" href="./manifest.json">
+
+<meta name="theme-color" content="#1b1b1b">
+</head>
+<body>
+
+<h2>ספירת משאיות</h2>
+
+<!-- Top buttons -->
+<div id="controls">
+    <button class="top-btn" onclick="addCounter()">➕ הוסף מונה</button>
+    <button class="top-btn danger" onclick="removeLastCounter()">🗑 מחק אחרון</button>
+    <button class="top-btn danger" onclick="resetAll()">🔄 איפוס כל המונים</button>
+</div>
+
+<!-- Dynamic counters -->
+<div class="container" id="counterContainer"></div>
+
+<!-- Total -->
+<div id="total">סה״כ: 0</div>
+
+<!-- WhatsApp button -->
+<div style="text-align:center; margin-top:15px;">
+    <button id="sendWA" class="top-btn" style="max-width:300px;" onclick="sendWhatsApp()">
+        שלח בווצאפ
+    </button>
+</div>
+
+<script src="./app.js"></script>
+
+<script>
+// Register service worker
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
+        .register("./service-worker.js")
+        .then(() => console.log("Service worker registered"))
+        .catch(err => console.log("SW registration failed:", err));
+}
+</script>
+
+</body>
+</html>
