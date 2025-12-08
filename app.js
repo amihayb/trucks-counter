@@ -1,9 +1,16 @@
-// Load counters or defaults
+/* =========================================================
+   Load counters from localStorage or defaults
+========================================================= */
+
 let counters = JSON.parse(localStorage.getItem("counters")) || [
     { name: "WFP", value: 0 },
     { name: "סקטור", value: 0 },
     { name: "WCK", value: 0 }
 ];
+
+/* =========================================================
+   MAIN RENDER FUNCTION
+========================================================= */
 
 function render() {
     const container = document.getElementById("counterContainer");
@@ -14,26 +21,27 @@ function render() {
         div.className = "counter";
 
         div.innerHTML = `
-			<div class="counter-header">
-				${counter.name}
-			</div>
+            <div class="counter-header"
+                 contenteditable="true"
+                 oninput="updateName(${index}, this.innerText)">
+                ${counter.name}
+            </div>
 
-			<div class="number-row">
-    <button class="reset-btn" onclick="resetCounter(${index})">↺</button>
+            <div class="number-row">
+                <button class="reset-btn" onclick="resetCounter(${index})">↺</button>
 
-    <input type="number" class="number-input" value="${counter.value}"
-        oninput="updateValue(${index}, this.value)}">
+                <input type="number" class="number-input"
+                    value="${counter.value}"
+                    oninput="updateValue(${index}, this.value)">
 
-    <div class="number-spacer"></div>
-</div>
+                <div class="number-spacer"></div>
+            </div>
 
-
-			<div class="btn-row">
-				<button class="btn-plus" onclick="changeValue(${index}, 1)">+</button>
-				<button class="btn-minus" onclick="changeValue(${index}, -1)">−</button>
-			</div>
-`		;
-
+            <div class="btn-row">
+                <button class="btn-minus" onclick="changeValue(${index}, -1)">−</button>
+                <button class="btn-plus" onclick="changeValue(${index}, 1)">+</button>
+            </div>
+        `;
 
         container.appendChild(div);
     });
@@ -42,7 +50,10 @@ function render() {
     save();
 }
 
-/* Logic */
+/* =========================================================
+   COUNTER MANAGEMENT
+========================================================= */
+
 function addCounter() {
     counters.push({ name: "מונה חדש", value: 0 });
     render();
@@ -60,6 +71,15 @@ function resetAll() {
     render();
 }
 
+function resetCounter(index) {
+    counters[index].value = 0;
+    render();
+}
+
+/* =========================================================
+   UPDATE HANDLERS
+========================================================= */
+
 function updateName(index, name) {
     counters[index].name = name;
     save();
@@ -76,12 +96,10 @@ function changeValue(index, delta) {
     render();
 }
 
-function resetCounter(index) {
-    counters[index].value = 0;
-    render();
-}
+/* =========================================================
+   TOTAL + SAVE
+========================================================= */
 
-/* Total & Save */
 function updateTotal() {
     const total = counters.reduce((sum, c) => sum + c.value, 0);
     document.getElementById("total").innerText = "סה״כ: " + total;
@@ -91,7 +109,10 @@ function save() {
     localStorage.setItem("counters", JSON.stringify(counters));
 }
 
-/* WhatsApp Share */
+/* =========================================================
+   WHATSAPP SHARE
+========================================================= */
+
 function sendWhatsApp() {
     let message = "כניסת משאיות עד כה:\n";
 
@@ -107,5 +128,9 @@ function sendWhatsApp() {
 
     window.open(url, "_blank");
 }
+
+/* =========================================================
+   INITIAL RENDER
+========================================================= */
 
 render();
