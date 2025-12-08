@@ -14,13 +14,6 @@
 
 <h2>ספירת משאיות</h2>
 
-<!-- Top buttons -->
-<div id="controls">
-    <button class="top-btn" onclick="addCounter()">➕ הוסף מונה</button>
-    <button class="top-btn danger" onclick="removeLastCounter()">🗑 מחק אחרון</button>
-    <button class="top-btn danger" onclick="resetAll()">🔄 איפוס כל המונים</button>
-</div>
-
 <!-- Dynamic counters -->
 <div class="container" id="counterContainer"></div>
 
@@ -29,10 +22,19 @@
 
 <!-- WhatsApp button -->
 <div style="text-align:center; margin-top:15px;">
-    <button id="sendWA" class="top-btn" style="max-width:300px;" onclick="sendWhatsApp()">
+    <button id="sendWA" onclick="sendWhatsApp()">
+        <img src="./images/whatsapp.png" alt="WA">
         שלח בווצאפ
     </button>
 </div>
+
+<!-- Controls buttons -->
+<div id="controls">
+    <button class="top-btn" onclick="addCounter()">➕ הוסף מונה</button>
+    <button class="top-btn danger" onclick="removeLastCounter()">🗑 מחק אחרון</button>
+    <button class="top-btn danger" onclick="resetAll()">🔄 איפוס כל המונים</button>
+</div>
+
 
 <script src="./app.js"></script>
 

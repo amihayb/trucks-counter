@@ -1,7 +1,11 @@
+/* =========================================================
+   GLOBAL
+========================================================= */
+
 body {
     font-family: Arial, sans-serif;
-    background: #1b1b1b;
-    color: #f2f2f2;
+    background: #1C1D20;     /* deep steel black */
+    color: #E6E6E6;
     margin: 0;
     padding: 20px;
     direction: rtl;
@@ -9,75 +13,128 @@ body {
 
 h2 {
     text-align: center;
-    color: #ffb36b;
+    color: #FF8F3F;          /* refined orange accent */
     margin-bottom: 15px;
+    font-weight: 700;
 }
+
+/* =========================================================
+   CONTROL BUTTONS (BOTTOM)
+========================================================= */
 
 #controls {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 15px;
+    margin-top: 20px;
     gap: 8px;
 }
 
 .top-btn {
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: none;
-    background: #333;
-    color: #ffb36b;
-    font-size: 16px;
-    cursor: pointer;
     flex: 1;
+    padding: 10px 12px;
+    font-size: 16px;
+    border-radius: 10px;
+    cursor: pointer;
+
+    background: #2E3135;
+    color: #FF8F3F;
+    border: 1px solid #5F6368;
 }
+
 .top-btn:active {
-    background: #444;
+    background: #26282B;
 }
 
 .danger {
-    color: #ff6b6b !important;
+    color: #FF6B57 !important;
 }
+
+/* =========================================================
+   COUNTERS CONTAINER
+========================================================= */
 
 .container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
     max-width: 600px;
     margin: auto;
 }
 
 .counter {
-    background: #252525;
-    padding: 18px;
-    border-radius: 12px;
-    border: 1px solid #3c3c3c;
+    background: #2E3135;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #5F6368;
 }
+
+/* =========================================================
+   COUNTER HEADER
+========================================================= */
 
 .counter-header {
-    font-size: 18px;
-    margin-bottom: 10px;
+    font-size: 16px;
+    margin-bottom: 4px;
     text-align: center;
     font-weight: bold;
-    color: #ffce9b;
+    color: #FFA565;
 }
 
-.counter-header[contenteditable="true"] {
-    border-bottom: 1px dashed #ffce9b;
-    padding-bottom: 5px;
+/* =========================================================
+   NUMBER ROW
+   Layout: [↺]  [number]  [empty spacer]
+========================================================= */
+
+.number-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
 }
 
+/* Reset button (left) */
+.reset-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    border-radius: 6px;
+    padding: 0;
+    cursor: pointer;
+
+    background: #2E3135;
+    border: 1px solid #5F6368;
+    color: #FF8F3F;
+}
+
+.reset-btn:active {
+    background: #26282B;
+}
+
+/* Number field (center) */
 .number-input {
     width: 100%;
-    font-size: 30px;
     text-align: center;
-    border: none;
-    background: #333;
-    border-radius: 10px;
-    padding: 10px;
-    margin: 12px 0;
-    color: #ffe2c4;
+    font-size: 22px;
     font-weight: bold;
+
+    padding: 6px 0;
+    margin: 6px 0;
+    border: none;
+    border-radius: 8px;
+
+    background: #3A3E44;
+    color: #FFD8BF;
 }
+
+/* Spacer (right) */
+.number-spacer {
+    width: 28px;
+    height: 28px;
+}
+
+/* =========================================================
+   +/- BUTTON ROW
+========================================================= */
 
 .btn-row {
     display: flex;
@@ -85,27 +142,74 @@ h2 {
     gap: 10px;
 }
 
-.btn-minus,
-.btn-plus {
-    font-size: 24px;
-    padding: 15px;
+.btn-plus,
+.btn-minus {
     flex: 1;
-    border-radius: 10px;
-    border: none;
+    padding: 8px;
+    font-size: 20px;
+    border-radius: 8px;
     cursor: pointer;
+    border: none;
     color: white;
 }
 
-.btn-plus { background: #ff9b42; }
-.btn-plus:active { background: #ff8210; }
+/* PLUS button */
+.btn-plus {
+    background: #FF8F3F;
+}
+.btn-plus:active {
+    background: #D86B2D;
+}
 
-.btn-minus { background: #ff6b57; }
-.btn-minus:active { background: #ff4b33; }
+/* MINUS button */
+.btn-minus {
+    background: #D86B2D;
+}
+.btn-minus:active {
+    background: #B45A26;
+}
+
+/* =========================================================
+   TOTAL LINE
+========================================================= */
 
 #total {
     text-align: center;
     margin-top: 25px;
     font-size: 26px;
     font-weight: bold;
-    color: #ffb36b;
+    color: #FF8F3F;
+}
+
+/* =========================================================
+   WHATSAPP BUTTON
+========================================================= */
+
+#sendWA {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    width: 70%;
+    margin: 20px auto 0 auto;
+    padding: 14px 18px;
+
+    background: #3B4A43;        /* muted steel green */
+    border: 1px solid #4F5E57;
+    border-radius: 14px;
+
+    color: #E8E8E8;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+#sendWA:active {
+    background: #2F3C36;
+}
+
+#sendWA img {
+    width: 26px;
+    height: 26px;
+    opacity: 0.9;
 }

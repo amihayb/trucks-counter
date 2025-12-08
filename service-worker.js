@@ -1,10 +1,11 @@
-const CACHE_NAME = "trucks-counter-v1";
+const CACHE_NAME = "trucks-counter-v1.1";
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
-  "./manifest.json"
+  "./manifest.json",
+  "./images/whatsapp.png"
 ];
 
 self.addEventListener("install", (event) => {

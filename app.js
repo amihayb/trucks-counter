@@ -14,19 +14,26 @@ function render() {
         div.className = "counter";
 
         div.innerHTML = `
-            <div class="counter-header" contenteditable="true"
-                oninput="updateName(${index}, this.innerText)">
-                ${counter.name}
-            </div>
+			<div class="counter-header">
+				${counter.name}
+			</div>
 
-            <input type="number" class="number-input" value="${counter.value}"
-                oninput="updateValue(${index}, this.value)">
+			<div class="number-row">
+    <button class="reset-btn" onclick="resetCounter(${index})">↺</button>
 
-            <div class="btn-row">
-                <button class="btn-minus" onclick="changeValue(${index}, -1)">−</button>
-                <button class="btn-plus" onclick="changeValue(${index}, 1)">+</button>
-            </div>
-        `;
+    <input type="number" class="number-input" value="${counter.value}"
+        oninput="updateValue(${index}, this.value)}">
+
+    <div class="number-spacer"></div>
+</div>
+
+
+			<div class="btn-row">
+				<button class="btn-plus" onclick="changeValue(${index}, 1)">+</button>
+				<button class="btn-minus" onclick="changeValue(${index}, -1)">−</button>
+			</div>
+`		;
+
 
         container.appendChild(div);
     });
@@ -66,6 +73,11 @@ function updateValue(index, val) {
 
 function changeValue(index, delta) {
     counters[index].value += delta;
+    render();
+}
+
+function resetCounter(index) {
+    counters[index].value = 0;
     render();
 }
 

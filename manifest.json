@@ -2,7 +2,7 @@
   "name": "ספירת משאיות",
   "short_name": "Trucks Counter",
   "start_url": "./",
-  "display": "fullscreen",
+  "display": "standalone",
   "background_color": "#1b1b1b",
   "theme_color": "#1b1b1b",
   "orientation": "portrait",
