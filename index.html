@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#1b1b1b">
 
     <script>
-        window.onerror = function(msg, url, line) {
+        window.onerror = function (msg, url, line) {
             console.error("Critical Error:", msg);
             forceSettingsMode("התגלתה שגיאה קריטית. הועברת למסך שחזור.");
             return false;
@@ -18,19 +18,19 @@
 
         function forceSettingsMode(msg) {
             var tabs = document.querySelectorAll('.tab-content');
-            for(var i=0; i<tabs.length; i++) { tabs[i].classList.remove('active'); }
+            for (var i = 0; i < tabs.length; i++) { tabs[i].classList.remove('active'); }
             var settings = document.getElementById('tab-settings');
-            if(settings) settings.classList.add('active');
-            if(msg) alert(msg);
+            if (settings) settings.classList.add('active');
+            if (msg) alert(msg);
         }
     </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-WH800FFF02"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-WH800FFF02');
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-WH800FFF02');
     </script>
 </head>
 <body>
@@ -38,20 +38,20 @@
     <button id="rescue-btn" onclick="forceSettingsMode()">⚙️</button>
 
     <main id="main-content">
-        
+
         <section id="tab-counters" class="tab-content active">
             <header class="app-header">
                 <h2>ספירת משאיות</h2>
                 <div id="live-total" class="live-stats">היום: 0</div>
             </header>
-            
+
             <div id="counters-list" class="container"></div>
 
             <button class="fab-add" onclick="addNewCounter()">+</button>
-            
+
             <button class="fab-whatsapp" onclick="shareWhatsApp()">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M16.53 13.33C16.29 13.2 15.1 12.63 14.87 12.53C14.66 12.43 14.5 12.39 14.33 12.63C14.19 12.87 13.77 13.33 13.63 13.47C13.5 13.6 13.36 13.59 13.11 13.48C12.87 13.36 12.1 13.11 11.18 12.29C10.48 11.67 10 10.9 9.86 10.66C9.72 10.42 9.85 10.29 9.97 10.17C10.08 10.06 10.21 9.88 10.33 9.74C10.46 9.6 10.5 9.5 10.58 9.34C10.67 9.18 10.62 9.04 10.56 8.91C10.5 8.78 10 7.56 9.8 7.07C9.59 6.58 9.4 6.65 9.25 6.65C9.11 6.64 8.95 6.64 8.78 6.64C8.61 6.64 8.33 6.71 8.1 6.96C7.86 7.21 7.18 7.84 7.18 9.12C7.18 10.4 8.12 11.64 8.25 11.81C8.38 11.99 10.17 14.73 12.9 15.91C13.55 16.19 14.06 16.36 14.46 16.49C15.13 16.7 15.74 16.67 16.22 16.6C16.76 16.52 17.88 15.92 18.11 15.26C18.35 14.6 18.35 14.03 18.28 13.92C18.21 13.8 18.06 13.73 17.81 13.6L16.53 13.33Z"/>
+                    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M16.53 13.33C16.29 13.2 15.1 12.63 14.87 12.53C14.66 12.43 14.5 12.39 14.33 12.63C14.19 12.87 13.77 13.33 13.63 13.47C13.5 13.6 13.36 13.59 13.11 13.48C12.87 13.36 12.1 13.11 11.18 12.29C10.48 11.67 10 10.9 9.86 10.66C9.72 10.42 9.85 10.29 9.97 10.17C10.08 10.06 10.21 9.88 10.33 9.74C10.46 9.6 10.5 9.5 10.58 9.34C10.67 9.18 10.62 9.04 10.56 8.91C10.5 8.78 10 7.56 9.8 7.07C9.59 6.58 9.4 6.65 9.25 6.65C9.11 6.64 8.95 6.64 8.78 6.64C8.61 6.64 8.33 6.71 8.1 6.96C7.86 7.21 7.18 7.84 7.18 9.12C7.18 10.4 8.12 11.64 8.25 11.81C8.38 11.99 10.17 14.73 12.9 15.91C13.55 16.19 14.06 16.36 14.46 16.49C15.13 16.7 15.74 16.67 16.22 16.6C16.76 16.52 17.88 15.92 18.11 15.26C18.35 14.6 18.35 14.03 18.28 13.92C18.21 13.8 18.06 13.73 17.81 13.6L16.53 13.33Z" />
                 </svg>
             </button>
         </section>
@@ -94,7 +94,7 @@
                 <div class="search-box">
                     <input type="text" id="registrySearch" placeholder="חיפוש שם, ת.ז, או טלפון..." oninput="filterRegistry()" style="width:100%; padding:12px; border-radius:8px; border:none;">
                 </div>
-                
+
                 <div class="import-area">
                     <label for="csvInput" class="btn-secondary" style="color:#aaa; border:1px solid #555; padding:8px; border-radius:6px; margin-top:10px; display:inline-block;">📂 ייבוא רשימה (CSV)</label>
                     <input type="file" id="csvInput" accept=".csv" onchange="importRegistryCSV(this)" hidden>
@@ -110,7 +110,7 @@
                 <h2>הגדרות</h2>
             </header>
             <div class="container">
-                
+
                 <div class="settings-group">
                     <h3>ניהול נתונים</h3>
                     <button class="btn-action" onclick="exportData('csv')">📄 הורד דוח לאקסל</button>
@@ -126,7 +126,7 @@
                     <button class="btn-danger" onclick="hardReset()">איפוס מלא (מחק הכל)</button>
                 </div>
 
-                <div class="version" style="text-align:center; color:#555; margin-top:20px;">TrucksLog v2.5</div>
+                <div class="version" style="text-align:center; color:#555; margin-top:20px;">TrucksLog v2.8 (Fixed Layout)</div>
             </div>
         </section>
     </main>
@@ -153,12 +153,12 @@
     <script src="./app.js"></script>
 
     <script>
-    if ("serviceWorker" in navigator) {
-        navigator.serviceWorker
-            .register("./service-worker.js")
-            .then(() => console.log("SW registered"))
-            .catch(err => console.log("SW failed:", err));
-    }
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker
+                .register("./service-worker.js")
+                .then(() => console.log("SW registered"))
+                .catch(err => console.log("SW failed:", err));
+        }
     </script>
 
 </body>
