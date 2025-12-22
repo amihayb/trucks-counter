@@ -1,215 +1,438 @@
 /* =========================================================
-   GLOBAL
+   1. CRITICAL VISIBILITY RULES (Must be at the top)
 ========================================================= */
+.tab-content {
+    display: none; /* Hide all tabs by default */
+    width: 100%;
+    height: 100%;
+}
+
+    .tab-content.active {
+        display: block !important; /* Force show the active tab */
+        animation: fadeIn 0.2s;
+    }
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* =========================================================
+   2. GLOBAL VARIABLES & RESET
+========================================================= */
+:root {
+    --bg-color: #1b1b1b;
+    --card-bg: #2E3135;
+    --text-main: #E6E6E6;
+    --accent: #FF8F3F; /* Orange */
+    --green: #2ecc71; /* Green */
+    --red: #e74c3c; /* Red */
+    --border: #5F6368;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
 
 body {
     font-family: Arial, sans-serif;
-    background: #1C1D20;     /* deep steel black */
-    color: #E6E6E6;
+    background: var(--bg-color);
+    color: var(--text-main);
     margin: 0;
-    padding: 20px;
+    padding: 0;
     direction: rtl;
-}
-
-h2 {
-    text-align: center;
-    color: #FF8F3F;          /* refined orange accent */
-    margin-bottom: 15px;
-    font-weight: 700;
-}
-
-/* =========================================================
-   CONTROL BUTTONS (BOTTOM)
-========================================================= */
-
-#controls {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-    gap: 8px;
-}
-
-.top-btn {
-    flex: 1;
-    padding: 10px 12px;
-    font-size: 16px;
-    border-radius: 10px;
-    cursor: pointer;
-
-    background: #2E3135;
-    color: #FF8F3F;
-    border: 1px solid #5F6368;
-}
-
-.top-btn:active {
-    background: #26282B;
-}
-
-.danger {
-    color: #FF6B57 !important;
-}
-
-/* =========================================================
-   COUNTERS CONTAINER
-========================================================= */
-
-.container {
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    max-width: 600px;
+    overflow: hidden;
+}
+
+/* =========================================================
+   3. HEADER
+========================================================= */
+.app-header {
+    background: #25282c;
+    padding: 10px 15px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 2px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+    .app-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: var(--accent);
+    }
+
+.live-stats {
+    font-weight: bold;
+    font-size: 1rem;
+    background: #3A3E44;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #555;
+}
+
+/* =========================================================
+   4. MAIN LAYOUT & GRID
+========================================================= */
+#main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 90px;
+}
+
+/* GAP FIX: The container provides the space below the header */
+.container {
+    padding: 20px 15px 0 15px;
+    max-width: 1200px;
     margin: auto;
 }
 
-.counter {
-    background: #2E3135;
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid #5F6368;
-}
-
-/* =========================================================
-   COUNTER HEADER
-========================================================= */
-
-.counter-header {
-    font-size: 16px;
-    margin-bottom: 4px;
-    text-align: center;
-    font-weight: bold;
-    color: #FFA565;
-}
-
-/* =========================================================
-   NUMBER ROW
-   Layout: [↺]  [number]  [empty spacer]
-========================================================= */
-
-.number-row {
+/* RESPONSIVE GRID */
+#counters-list {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 8px;
+    grid-template-columns: 1fr; /* Mobile: 1 col */
+    gap: 15px;
 }
-
-/* Reset button (left) */
-.reset-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 16px;
-    border-radius: 6px;
-    padding: 0;
-    cursor: pointer;
-
-    background: #2E3135;
-    border: 1px solid #5F6368;
-    color: #FF8F3F;
+/* Tablet */
+@media (min-width: 600px) {
+    #counters-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
-
-.reset-btn:active {
-    background: #26282B;
-}
-
-/* Number field (center) */
-.number-input {
-    width: 100%;
-    text-align: center;
-    font-size: 22px;
-    font-weight: bold;
-
-    padding: 6px 0;
-    margin: 6px 0;
-    border: none;
-    border-radius: 8px;
-
-    background: #3A3E44;
-    color: #FFD8BF;
-}
-
-/* Spacer (right) */
-.number-spacer {
-    width: 28px;
-    height: 28px;
+/* Desktop */
+@media (min-width: 1000px) {
+    #counters-list {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
 /* =========================================================
-   +/- BUTTON ROW
+   5. COUNTER CARDS
 ========================================================= */
+.counter-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+}
 
-.btn-row {
+/* HEADER: [Delete] [Title] [Reset] */
+.card-header {
     display: flex;
     justify-content: space-between;
-    gap: 10px;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #444;
+    margin-bottom: 5px;
 }
 
-.btn-plus,
-.btn-minus {
-    flex: 1;
-    padding: 8px;
-    font-size: 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    border: none;
-    color: white;
-}
-
-/* PLUS button */
-.btn-plus {
-    background: #FF8F3F;
-}
-.btn-plus:active {
-    background: #D86B2D;
-}
-
-/* MINUS button */
-.btn-minus {
-    background: #D86B2D;
-}
-.btn-minus:active {
-    background: #B45A26;
-}
-
-/* =========================================================
-   TOTAL LINE
-========================================================= */
-
-#total {
-    text-align: center;
-    margin-top: 25px;
-    font-size: 26px;
+.header-title {
     font-weight: bold;
-    color: #FF8F3F;
+    font-size: 1.1rem;
+    color: #FFA565;
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* =========================================================
-   WHATSAPP BUTTON
-========================================================= */
-
-#sendWA {
+.header-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px 10px;
+    opacity: 0.5;
+    transition: opacity 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-
-    width: 70%;
-    margin: 20px auto 0 auto;
-    padding: 14px 18px;
-
-    background: #3B4A43;        /* muted steel green */
-    border: 1px solid #4F5E57;
-    border-radius: 14px;
-
-    color: #E8E8E8;
-    font-size: 18px;
-    font-weight: 600;
 }
 
-#sendWA:active {
-    background: #2F3C36;
+    .header-btn:hover {
+        opacity: 1;
+    }
+
+.btn-reset {
+    color: #aaa;
 }
 
-#sendWA img {
-    width: 26px;
-    height: 26px;
+.btn-delete {
+    color: #e74c3c;
+}
+
+/* =========================================================
+   6. THE COLORED BLOCKS
+========================================================= */
+.controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+}
+
+.control-block {
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 85px;
+    width: 100%;
+    position: relative;
+}
+
+/* Background Colors */
+.block-return {
+    background-color: var(--red) !important;
+    color: white;
+}
+
+.block-empty {
+    background-color: var(--accent) !important;
+    color: black;
+}
+
+.block-approve {
+    background-color: var(--green) !important;
+    color: black;
+}
+
+/* The Row inside the block */
+.control-actions {
+    flex: 1;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch;
+    justify-content: space-between;
+    width: 100%;
+}
+
+/* Buttons (+ / -) */
+.ctrl-btn {
+    width: 30%;
+    border: none;
+    background: rgba(0,0,0,0.15);
+    color: inherit;
+    font-size: 1.4rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+}
+
+    .ctrl-btn:active {
+        background: rgba(0,0,0,0.3);
+    }
+
+/* Center Display (Value + Label) */
+.ctrl-display {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none;
+}
+
+.ctrl-val {
+    font-size: 1.5rem;
+    font-weight: bold;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.ctrl-label-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
     opacity: 0.9;
+}
+
+.ctrl-label {
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.ctrl-icon {
+    font-size: 0.85rem;
+}
+
+/* =========================================================
+   7. TOTALS FOOTER
+========================================================= */
+.counter-total-bar {
+    background: #222;
+    padding: 6px;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #888;
+    margin-top: 4px;
+}
+
+    .counter-total-bar b {
+        color: #fff;
+    }
+
+/* =========================================================
+   8. BOTTOM ICONS (FABs & Rescue)
+========================================================= */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #25282c;
+    border-top: 2px solid var(--accent);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    z-index: 100;
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    color: #888;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.75rem;
+    flex: 1;
+    cursor: pointer;
+}
+
+    .nav-item.active {
+        color: var(--accent);
+    }
+
+    .nav-item .icon {
+        font-size: 1.3rem;
+        margin-bottom: 3px;
+    }
+
+/* HIDE SETTINGS BUTTON (4th child) IN FOOTER */
+.bottom-nav .nav-item:nth-child(4) {
+    display: none;
+}
+
+/* Left FAB: Add Counter */
+.fab-add {
+    position: fixed;
+    bottom: 85px;
+    left: 20px;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 30px;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    cursor: pointer;
+    z-index: 90;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Right FAB: WhatsApp */
+.fab-whatsapp {
+    position: fixed;
+    bottom: 85px;
+    right: 20px;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background: #25D366;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    cursor: pointer;
+    z-index: 90;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px;
+}
+
+    .fab-whatsapp svg {
+        width: 100%;
+        height: 100%;
+        fill: white;
+    }
+
+/* RESCUE WHEEL (Settings) */
+#rescue-btn {
+    position: fixed;
+    bottom: 25px; /* Aligned with bottom nav */
+    left: 20px;
+    z-index: 101;
+    background: rgba(0,0,0,0.3);
+    color: #888;
+    border: 1px solid #444;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s;
+}
+
+    #rescue-btn:hover {
+        opacity: 1;
+        background: #333;
+    }
+
+/* Dashboard & Registry specific fixes */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: #2E3135;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #555;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--accent);
+    display: block;
+    margin-top: 5px;
 }

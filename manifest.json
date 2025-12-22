@@ -1,10 +1,10 @@
 {
-  "name": "ספירת משאיות",
-  "short_name": "Trucks Counter",
-  "start_url": "./",
+  "name": "ספירת משאיות V2",
+  "short_name": "TrucksLog",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1b1b1b",
-  "theme_color": "#1b1b1b",
+  "background_color": "#1C1D20",
+  "theme_color": "#25282c",
   "orientation": "portrait",
   "icons": [
     {
