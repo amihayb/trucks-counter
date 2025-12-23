@@ -1,5 +1,5 @@
 /* =========================================================
-   1. CRITICAL VISIBILITY RULES
+   1. VISIBILITY & ANIMATIONS
 ========================================================= */
 .tab-content {
     display: none;
@@ -22,7 +22,7 @@
 }
 
 /* =========================================================
-   2. GLOBAL VARIABLES & RESET
+   2. GLOBAL LAYOUT
 ========================================================= */
 :root {
     --bg-color: #1b1b1b;
@@ -39,7 +39,6 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* FLEXBOX LAYOUT (Mobile Fix applied) */
 body {
     font-family: Arial, sans-serif;
     background: var(--bg-color);
@@ -47,17 +46,15 @@ body {
     margin: 0;
     padding: 0;
     direction: rtl;
-    /* MOBILE FIX: Use dvh (Dynamic Viewport Height) to account for browser bars */
-    height: 100vh; /* Fallback for old browsers */
-    height: 100dvh; /* The real fix */
-
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
 /* =========================================================
-   3. HEADER (Top Hard Layer)
+   3. HEADER & CONTENT
 ========================================================= */
 .app-header {
     background: #25282c;
@@ -68,8 +65,11 @@ body {
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    flex-shrink: 0;
-    z-index: 10;
+    flex: 0 0 auto;
+    z-index: 20;
+    /* FIX FOR DESKTOP SCROLLING */
+    position: sticky;
+    top: 0;
 }
 
     .app-header h2 {
@@ -87,12 +87,10 @@ body {
     border: 1px solid #555;
 }
 
-/* =========================================================
-   4. MAIN CONTENT (The Scrollable Middle)
-========================================================= */
 #main-content {
-    flex: 1;
+    flex: 1 1 auto;
     overflow-y: auto;
+    overflow-x: hidden;
     position: relative;
     padding-bottom: 20px;
 }
@@ -103,19 +101,18 @@ body {
     margin: auto;
 }
 
-/* RESPONSIVE GRID */
 #counters-list {
     display: grid;
-    grid-template-columns: 1fr; /* Mobile: 1 col */
+    grid-template-columns: 1fr;
     gap: 15px;
 }
-/* Tablet */
+
 @media (min-width: 600px) {
     #counters-list {
         grid-template-columns: repeat(2, 1fr);
     }
 }
-/* Desktop */
+
 @media (min-width: 1000px) {
     #counters-list {
         grid-template-columns: repeat(3, 1fr);
@@ -123,7 +120,7 @@ body {
 }
 
 /* =========================================================
-   5. COUNTER CARDS
+   4. COUNTER CARDS
 ========================================================= */
 .counter-card {
     background: var(--card-bg);
@@ -134,10 +131,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    position: relative;
 }
 
-/* HEADER: [Delete] [Title] [Reset] */
 .card-header {
     display: flex;
     justify-content: space-between;
@@ -166,10 +161,6 @@ body {
     font-size: 1.2rem;
     padding: 5px 10px;
     opacity: 0.5;
-    transition: opacity 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
     .header-btn:hover {
@@ -185,52 +176,50 @@ body {
 }
 
 /* =========================================================
-   6. THE COLORED BLOCKS
+   5. CONTROLS (ROW LAYOUT)
 ========================================================= */
-.controls-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+.controls-row {
+    display: flex;
+    flex-direction: row;
     gap: 6px;
     width: 100%;
 }
 
 .control-block {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     border-radius: 8px;
     overflow: hidden;
     height: 85px;
-    width: 100%;
     position: relative;
+    transition: all 0.2s ease;
 }
 
-/* Background Colors */
-.block-return {
-    background-color: var(--red) !important;
-    color: white;
+/* Colors */
+.block-approve {
+    background-color: var(--green);
+    color: black;
 }
 
 .block-empty {
-    background-color: var(--accent) !important;
+    background-color: var(--accent);
     color: black;
 }
 
-.block-approve {
-    background-color: var(--green) !important;
-    color: black;
+.block-return {
+    background-color: var(--red);
+    color: white;
 }
 
-/* The Row inside the block */
 .control-actions {
     flex: 1;
-    display: flex !important;
-    flex-direction: row !important;
+    display: flex;
     align-items: stretch;
     justify-content: space-between;
-    width: 100%;
 }
 
-/* Buttons (+ / -) */
 .ctrl-btn {
     width: 30%;
     border: none;
@@ -239,9 +228,6 @@ body {
     font-size: 1.4rem;
     font-weight: bold;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     padding: 0;
     margin: 0;
 }
@@ -250,61 +236,209 @@ body {
         background: rgba(0,0,0,0.3);
     }
 
-/* Center Display (Value + Label) */
 .ctrl-display {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    text-align: center;
-    /* CLICK FIX: Removed 'pointer-events: none' so user can click to edit */
     cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .ctrl-val {
     font-size: 1.5rem;
     font-weight: bold;
     line-height: 1;
-    margin-bottom: 2px;
+    margin-bottom: 0px;
 }
 
+/* SVG Icons & Labels - Vertical Stack */
 .ctrl-label-box {
     display: flex;
+    flex-direction: column; /* Icon below text */
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
     opacity: 0.9;
-}
-
-.ctrl-label {
     font-size: 0.75rem;
     font-weight: bold;
+    width: 100%;
+    margin-top: 2px;
 }
 
-.ctrl-icon {
-    font-size: 0.85rem;
+.truck-icon {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
 }
 
-/* =========================================================
-   7. TOTALS FOOTER
-========================================================= */
-.counter-total-bar {
-    background: #222;
-    padding: 6px;
-    border-radius: 4px;
-    text-align: center;
-    font-size: 0.9rem;
-    color: #888;
-    margin-top: 4px;
-}
-
-    .counter-total-bar b {
-        color: #fff;
+    .truck-icon.outline {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
     }
 
 /* =========================================================
-   8. BOTTOM ICONS (The Bottom Hard Layer)
+   6. FOOTER & TOGGLES (Updated Layout)
+========================================================= */
+.counter-total-bar {
+    background: #222;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-top: auto;
+    /* Flex layout for summary + toggles */
+    display: flex;
+    justify-content: space-between; /* Space between Text (Right) and Toggles (Left) */
+    align-items: center;
+    min-height: 42px;
+}
+
+.summary-text {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+    .summary-text b {
+        color: #fff;
+    }
+
+/* New Toggles Container (Left side) */
+.footer-toggles {
+    display: flex;
+    gap: 8px;
+}
+
+/* Icon-only circular buttons */
+.toggle-icon-btn {
+    background: transparent;
+    border: 1px solid #444;
+    color: #666;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 6px;
+}
+
+    .toggle-icon-btn svg {
+        width: 100%;
+        height: 100%;
+        fill: currentColor;
+    }
+
+    .toggle-icon-btn:hover {
+        border-color: #666;
+        color: #aaa;
+    }
+
+    /* Active state for toggles */
+    .toggle-icon-btn.active.btn-empty {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: black;
+    }
+
+    .toggle-icon-btn.active.btn-returned {
+        background: var(--red);
+        border-color: var(--red);
+        color: white;
+    }
+
+/* =========================================================
+   7. CUSTOM MODAL
+========================================================= */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+    .modal-overlay.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+.modal-content {
+    background: #2E3135;
+    padding: 20px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 320px;
+    text-align: center;
+    border: 1px solid #555;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+    .modal-content h3 {
+        margin-top: 0;
+        color: var(--accent);
+        margin-bottom: 15px;
+    }
+
+.modal-input {
+    width: 100%;
+    padding: 15px;
+    font-size: 2rem;
+    text-align: center;
+    background: #1b1b1b;
+    border: 1px solid #555;
+    color: white;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    outline: none;
+    font-weight: bold;
+}
+
+    .modal-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 5px rgba(255, 143, 63, 0.5);
+    }
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-save {
+    background: var(--green);
+    color: black;
+}
+
+.btn-cancel {
+    background: #444;
+    color: white;
+}
+
+/* =========================================================
+   8. MAIN NAV & FABs (RESTORED SIZE)
 ========================================================= */
 .bottom-nav {
     position: relative;
@@ -313,11 +447,12 @@ body {
     border-top: 2px solid var(--accent);
     display: flex;
     justify-content: space-around;
-    padding: 8px 0;
-    z-index: 100;
-    flex-shrink: 0;
-    /* SAFE AREA for modern phones (iPhone X etc) */
-    padding-bottom: env(safe-area-inset-bottom, 8px);
+    /* Increased Padding & Height */
+    padding: 12px 0;
+    min-height: 70px;
+    z-index: 20;
+    flex: 0 0 auto;
+    padding-bottom: env(safe-area-inset-bottom, 12px);
 }
 
 .nav-item {
@@ -327,66 +462,51 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-size: 0.75rem;
+    /* Increased Font Size */
+    font-size: 0.9rem;
     flex: 1;
     cursor: pointer;
 }
+
+    .nav-item .icon {
+        /* Explicit Icon Size */
+        font-size: 1.5rem;
+        margin-bottom: 4px;
+    }
 
     .nav-item.active {
         color: var(--accent);
     }
 
-    .nav-item .icon {
-        font-size: 1.3rem;
-        margin-bottom: 3px;
+    .nav-item:nth-child(4) {
+        display: none;
     }
 
-/* HIDE SETTINGS BUTTON (4th child) IN FOOTER */
-.bottom-nav .nav-item:nth-child(4) {
-    display: none;
+.fab-add, .fab-whatsapp {
+    position: fixed;
+    bottom: 90px;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    z-index: 15;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
 }
 
-/* =========================================================
-   9. FLOATING BUTTONS
-========================================================= */
-
-/* Left FAB: Add Counter */
 .fab-add {
-    position: fixed;
-    bottom: 80px;
     left: 20px;
-    width: 55px;
-    height: 55px;
-    border-radius: 50%;
     background: var(--accent);
-    color: white;
     font-size: 30px;
-    border: none;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    cursor: pointer;
-    z-index: 90;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
-/* Right FAB: WhatsApp */
 .fab-whatsapp {
-    position: fixed;
-    bottom: 80px;
     right: 20px;
-    width: 55px;
-    height: 55px;
-    border-radius: 50%;
     background: #25D366;
-    color: white;
-    border: none;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    cursor: pointer;
-    z-index: 90;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     padding: 12px;
 }
 
@@ -396,12 +516,11 @@ body {
         fill: white;
     }
 
-/* RESCUE WHEEL (Settings) */
 #rescue-btn {
     position: fixed;
     bottom: 25px;
     left: 20px;
-    z-index: 101;
+    z-index: 25;
     background: rgba(0,0,0,0.3);
     color: #888;
     border: 1px solid #444;
@@ -409,19 +528,12 @@ body {
     width: 35px;
     height: 35px;
     font-size: 18px;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.3s;
 }
 
-    #rescue-btn:hover {
-        opacity: 1;
-        background: #333;
-    }
-
-/* Dashboard & Registry specific fixes */
+/* Dashboard & Registry */
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
