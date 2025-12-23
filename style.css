@@ -4,7 +4,6 @@
 .tab-content {
     display: none;
     width: 100%;
-    /* No height 100% needed here anymore */
 }
 
     .tab-content.active {
@@ -40,7 +39,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* FLEXBOX LAYOUT (The "Hard Layer" Fix) */
+/* FLEXBOX LAYOUT (Mobile Fix applied) */
 body {
     font-family: Arial, sans-serif;
     background: var(--bg-color);
@@ -48,11 +47,13 @@ body {
     margin: 0;
     padding: 0;
     direction: rtl;
-    /* This creates the fixed app frame */
-    height: 100vh;
+    /* MOBILE FIX: Use dvh (Dynamic Viewport Height) to account for browser bars */
+    height: 100vh; /* Fallback for old browsers */
+    height: 100dvh; /* The real fix */
+
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Prevents whole page scrolling */
+    overflow: hidden;
 }
 
 /* =========================================================
@@ -67,8 +68,7 @@ body {
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    /* Flex settings */
-    flex-shrink: 0; /* Never shrink */
+    flex-shrink: 0;
     z-index: 10;
 }
 
@@ -91,13 +91,12 @@ body {
    4. MAIN CONTENT (The Scrollable Middle)
 ========================================================= */
 #main-content {
-    flex: 1; /* Takes all remaining space */
-    overflow-y: auto; /* Internal scrolling */
+    flex: 1;
+    overflow-y: auto;
     position: relative;
-    padding-bottom: 20px; /* Small cushion */
+    padding-bottom: 20px;
 }
 
-/* Container just handles horizontal width now */
 .container {
     padding: 20px 15px;
     max-width: 1200px;
@@ -259,7 +258,8 @@ body {
     align-items: center;
     justify-content: center;
     text-align: center;
-    pointer-events: none;
+    /* CLICK FIX: Removed 'pointer-events: none' so user can click to edit */
+    cursor: pointer;
 }
 
 .ctrl-val {
@@ -307,7 +307,6 @@ body {
    8. BOTTOM ICONS (The Bottom Hard Layer)
 ========================================================= */
 .bottom-nav {
-    /* No longer fixed! It sits naturally at the bottom */
     position: relative;
     width: 100%;
     background: #25282c;
@@ -316,8 +315,9 @@ body {
     justify-content: space-around;
     padding: 8px 0;
     z-index: 100;
-    /* Flex settings */
     flex-shrink: 0;
+    /* SAFE AREA for modern phones (iPhone X etc) */
+    padding-bottom: env(safe-area-inset-bottom, 8px);
 }
 
 .nav-item {
@@ -348,13 +348,12 @@ body {
 
 /* =========================================================
    9. FLOATING BUTTONS
-   (Now calculated from the bottom of the screen)
 ========================================================= */
 
 /* Left FAB: Add Counter */
 .fab-add {
     position: fixed;
-    bottom: 80px; /* Sits above the footer (~60px) + spacing */
+    bottom: 80px;
     left: 20px;
     width: 55px;
     height: 55px;
