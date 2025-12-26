@@ -2,7 +2,7 @@
    STATE MANAGEMENT & CONFIG
 ========================================================= */
 
-const APP_VERSION = "TrucksLog v3.8 (UX)";
+const APP_VERSION = "TrucksLog v3.9 (Camera Update)";
 
 // SHORT "CLICK" SOUND (Base64 encoded)
 const CLICK_SOUND = new Audio("data:audio/wav;base64,UklGRiQtAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTgtAACAgICAgICAgICAgICAgICAgICAgICAgICAf3hxeHCAgIB/fHd2eIB+fHh3eICAgIA=");
@@ -77,6 +77,7 @@ function init() {
     if (vibrateToggle) vibrateToggle.checked = appData.settings.vibrateEnabled;
 
     setupEventListeners();
+    setupTooltips(); // --- NEW: Activate Tooltips Logic ---
     renderCounters();
     updateLiveTotal();
 
@@ -144,14 +145,9 @@ function setupEventListeners() {
 
     // 3. GLOBAL FEEDBACK LISTENER
     document.body.addEventListener('click', (e) => {
-        // Detect click on interactive elements
-        // Also include input[type="range"] so user gets feedback when dropping the slider handle
-        const target = e.target.closest('button, .nav-item, .fab-add, .fab-whatsapp, .header-title, input[type="checkbox"], input[type="range"]');
+        // Detect click on interactive elements (Added .fab-camera)
+        const target = e.target.closest('button, .nav-item, .fab-add, .fab-whatsapp, .fab-camera, .header-title, input[type="checkbox"], input[type="range"]');
 
-        // Note: For the range slider, 'change'/'input' events handle the specific volume preview, 
-        // but this ensures generic clicks also feel responsive if needed.
-        // We filter out the slider itself here to avoid double-beeping when dragging, 
-        // leaving the specific handler to do the work.
         if (target && target.type !== 'range') {
             triggerFeedback();
         }
@@ -190,6 +186,48 @@ function toggleVibrateSetting(isChecked) {
 
 function save() {
     localStorage.setItem("trucksLogData_v3", JSON.stringify(appData));
+}
+
+/* =========================================================
+   NEW: TOOLTIPS LOGIC (LONG PRESS)
+========================================================= */
+
+function setupTooltips() {
+    // Camera Button Tooltip
+    setupLongPress('btn-cam', 'tip-cam');
+    // WhatsApp Button Tooltip
+    setupLongPress('btn-wa', 'tip-wa');
+}
+
+function setupLongPress(btnId, tipId) {
+    const btn = document.getElementById(btnId);
+    const tip = document.getElementById(tipId);
+    if (!btn || !tip) return;
+
+    let pressTimer;
+
+    // Start timer on touch
+    btn.addEventListener('touchstart', (e) => {
+        // We do NOT prevent default here so 'click' can still happen if released quickly
+        pressTimer = setTimeout(() => {
+            // Show Tooltip
+            tip.classList.add('visible');
+            // Hide automatically after 3 seconds
+            setTimeout(() => {
+                tip.classList.remove('visible');
+            }, 3000);
+        }, 800); // 0.8 seconds wait time for "Long Press"
+    });
+
+    // Clear timer if finger released early
+    btn.addEventListener('touchend', () => {
+        clearTimeout(pressTimer);
+    });
+
+    // Clear timer if finger moved (cancel action)
+    btn.addEventListener('touchmove', () => {
+        clearTimeout(pressTimer);
+    });
 }
 
 /* =========================================================
@@ -861,6 +899,54 @@ function shareWhatsApp() {
         if (arr > 0) msg += `\n${c.name}: ${arr}`;
     });
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+}
+
+/* =========================================================
+   NEW: CAMERA REPORT LOGIC
+========================================================= */
+function generateImageReport() {
+    const element = document.getElementById("screenshot-target");
+    if (!element) return;
+
+    // Use dark background for capture
+    html2canvas(element, {
+        backgroundColor: "#1b1b1b",
+        scale: 2
+    }).then(canvas => {
+        canvas.toBlob(blob => {
+            if (!blob) return;
+
+            // Mobile Native Share
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], "report.png", { type: "image/png" })] })) {
+                const file = new File([blob], `trucks_report_${getISODate(new Date())}.png`, { type: "image/png" });
+                navigator.share({
+                    files: [file],
+                    title: 'דוח משאיות',
+                    text: 'מצב מונים עדכני'
+                }).catch(err => console.log('Share failed', err));
+            }
+            // Desktop Clipboard / Download Fallback
+            else {
+                try {
+                    const item = new ClipboardItem({ "image/png": blob });
+                    navigator.clipboard.write([item]).then(() => {
+                        alert("✅ התמונה הועתקה ללוח!\nכעת היכנס לוואטסאפ ועשה 'הדבק' (Ctrl+V).");
+                    }).catch(err => {
+                        downloadImageFallback(canvas);
+                    });
+                } catch (e) {
+                    downloadImageFallback(canvas);
+                }
+            }
+        });
+    });
+}
+
+function downloadImageFallback(canvas) {
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL("image/png");
+    a.download = `report_${getISODate(new Date())}.png`;
+    a.click();
 }
 
 function refreshUI() {

@@ -649,12 +649,14 @@ body {
         color: var(--accent);
     }
 
-.fab-add, .fab-whatsapp {
+.fab-add {
     position: fixed;
     bottom: 90px;
+    left: 20px;
     width: 55px;
     height: 55px;
     border-radius: 50%;
+    background-color: var(--accent);
     color: white;
     border: none;
     box-shadow: 0 4px 10px rgba(0,0,0,0.5);
@@ -663,17 +665,25 @@ body {
     justify-content: center;
     align-items: center;
     cursor: pointer;
-}
-
-.fab-add {
-    left: 20px;
-    background: var(--accent);
     font-size: 30px;
 }
 
 .fab-whatsapp {
+    position: fixed;
+    bottom: 90px;
     right: 20px;
-    background: #25D366;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background-color: #25D366;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    z-index: 15;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
     padding: 12px;
 }
 
@@ -699,6 +709,7 @@ body {
     align-items: center;
     justify-content: center;
 }
+
 /* Dashboard Helpers */
 .stats-grid {
     display: grid;
@@ -721,4 +732,72 @@ body {
     color: var(--accent);
     display: block;
     margin-top: 5px;
+}
+
+/* --- NEW ADDITIONS FOR V3.9 --- */
+
+/* Camera Button (Styled exactly like WhatsApp) */
+.fab-camera {
+    position: fixed;
+    bottom: 160px; /* 90px + 55px + 15px gap */
+    right: 20px;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background-color: #25D366; /* Match WhatsApp Green */
+    color: white;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    z-index: 15;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 12px;
+    font-size: 24px; /* For the emoji/icon */
+}
+
+    .fab-camera:active {
+        transform: scale(0.95);
+        background-color: #1DA851;
+    }
+
+/* Tooltips */
+.tooltip {
+    position: absolute;
+    right: 70px; /* To the LEFT of the button */
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1001;
+}
+
+    .tooltip::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: -6px;
+        margin-top: -6px;
+        border-width: 6px;
+        border-style: solid;
+        border-color: transparent transparent transparent rgba(0, 0, 0, 0.9);
+    }
+
+    .tooltip.visible {
+        opacity: 1 !important;
+    }
+
+/* Wrapper to hold button + tooltip relative to each other */
+.fab-wrapper {
+    position: absolute; /* Relative to viewport/fixed parent */
+    width: 0;
+    height: 0; /* Wrapper shouldn't take space */
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = "trucks-log-v3.8-ux";
+const CACHE_NAME = "trucks-log-v3.9-camera";
 const FILES_TO_CACHE = [
     "./",
     "./index.html",
