@@ -16,10 +16,10 @@
         };
 
         function forceSettingsMode(msg) {
-            var tabs = document.querySelectorAll('.tab-content');
-            for (var i = 0; i < tabs.length; i++) { tabs[i].classList.remove('active'); }
-            var settings = document.getElementById('tab-settings');
-            if (settings) settings.classList.add('active');
+            // Updated in app.js - this is fallback
+            if (typeof toggleSettingsTab === 'function') {
+                toggleSettingsTab();
+            }
             if (msg) alert(msg);
         }
     </script>
@@ -45,7 +45,7 @@
         </div>
     </div>
 
-    <button id="rescue-btn" onclick="forceSettingsMode()">⚙️</button>
+    <button id="rescue-btn" onclick="toggleSettingsTab()">⚙️</button>
 
     <main id="main-content">
 
@@ -193,10 +193,6 @@
         <button class="nav-item" onclick="switchTab('tab-registry')">
             <span class="icon">📋</span>
             <span class="label">רשימות</span>
-        </button>
-        <button class="nav-item" onclick="switchTab('tab-settings')">
-            <span class="icon">⚙️</span>
-            <span class="label">הגדרות</span>
         </button>
     </nav>
 
