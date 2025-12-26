@@ -4,10 +4,12 @@
 .tab-content {
     display: none;
     width: 100%;
+    height: 100%; /* Important for internal scrolling */
+    flex-direction: column;
 }
 
     .tab-content.active {
-        display: block !important;
+        display: flex !important;
         animation: fadeIn 0.2s;
     }
 
@@ -32,6 +34,7 @@
     --green: #2ecc71; /* Green */
     --red: #e74c3c; /* Red */
     --border: #5F6368;
+    --table-header-bg: #333;
 }
 
 * {
@@ -67,9 +70,6 @@ body {
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     flex: 0 0 auto;
     z-index: 20;
-    /* FIX FOR DESKTOP SCROLLING */
-    position: sticky;
-    top: 0;
 }
 
     .app-header h2 {
@@ -89,9 +89,15 @@ body {
 
 #main-content {
     flex: 1 1 auto;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden; /* Prevent body scroll, handle per tab */
     position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Scrollable containers for Tabs 1, 2, 4 */
+#tab-counters, #tab-dashboard, #tab-settings {
+    overflow-y: auto;
     padding-bottom: 20px;
 }
 
@@ -99,6 +105,7 @@ body {
     padding: 20px 15px;
     max-width: 1200px;
     margin: auto;
+    width: 100%;
 }
 
 #counters-list {
@@ -113,14 +120,244 @@ body {
     }
 }
 
-@media (min-width: 1000px) {
-    #counters-list {
-        grid-template-columns: repeat(3, 1fr);
+/* =========================================================
+   4. REGISTRY STYLES (NEW - STICKY LAYOUT)
+========================================================= */
+/* The top part that stays fixed */
+.registry-sticky-header {
+    background: var(--bg-color);
+    z-index: 100;
+    flex: 0 0 auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Search Bar Area */
+.search-bar-container {
+    padding: 10px 15px;
+    background: #25282c;
+}
+
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: #3A3E44;
+    border-radius: 8px;
+    border: 1px solid #555;
+    padding: 0 10px;
+}
+
+    .search-input-wrapper input {
+        flex: 1;
+        background: none;
+        border: none;
+        color: white;
+        padding: 12px 5px;
+        font-size: 1rem;
+        outline: none;
     }
+
+.voice-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    margin-right: 5px;
+}
+
+/* Files Drawer Toggle (Accordion Header) */
+.files-drawer-toggle {
+    background: #202020;
+    color: #aaa;
+    padding: 8px 15px;
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+}
+
+    .files-drawer-toggle:active {
+        background: #333;
+    }
+
+/* Files Drawer Content */
+.files-drawer-content {
+    background: #151515;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease-out;
+    border-bottom: 1px solid var(--accent);
+}
+
+    .files-drawer-content.open {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+.files-actions {
+    display: flex;
+    gap: 10px;
+    padding: 10px 15px;
+    align-items: center;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #333;
+}
+
+.btn-small-add {
+    background: var(--accent);
+    color: black;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.btn-text {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.text-red {
+    color: var(--red);
+}
+
+/* File List Items */
+#file-list-container {
+    padding: 5px 0;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 15px;
+    border-bottom: 1px solid #222;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    cursor: pointer;
+}
+
+.file-name {
+    font-size: 0.9rem;
+    color: #ddd;
+}
+
+.file-date {
+    font-size: 0.75rem;
+    color: var(--accent);
+}
+
+.file-delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.6;
+}
+
+/* Table Scroll Area */
+.registry-scroll-area {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    position: relative;
+    padding-bottom: 80px; /* Space for footer */
+}
+
+.registry-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+    .registry-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--table-header-bg);
+        box-shadow: 0 2px 2px rgba(0,0,0,0.2);
+    }
+
+    .registry-table th {
+        padding: 12px 8px;
+        text-align: right;
+        font-weight: bold;
+        color: #bbb;
+        font-size: 0.8rem;
+    }
+
+    .registry-table td {
+        padding: 12px 8px;
+        border-bottom: 1px solid #333;
+        vertical-align: middle;
+    }
+
+/* Accordion Rows */
+.row-main {
+    cursor: pointer;
+    background: var(--card-bg);
+    transition: background 0.2s;
+}
+
+    .row-main:hover {
+        background: #383c41;
+    }
+
+.row-expanded {
+    display: none;
+    background: #222;
+}
+
+    .row-expanded.open {
+        display: table-row;
+        animation: fadeIn 0.2s;
+    }
+
+.expanded-details {
+    padding: 15px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: #ccc;
+}
+
+.detail-box {
+    background: #111;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #333;
+}
+
+.detail-label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin-bottom: 2px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-size: 1.2rem;
 }
 
 /* =========================================================
-   4. COUNTER CARDS
+   5. COUNTER CARDS & CONTROLS (Existing)
 ========================================================= */
 .counter-card {
     background: var(--card-bg);
@@ -163,21 +400,6 @@ body {
     opacity: 0.5;
 }
 
-    .header-btn:hover {
-        opacity: 1;
-    }
-
-.btn-reset {
-    color: #aaa;
-}
-
-.btn-delete {
-    color: #e74c3c;
-}
-
-/* =========================================================
-   5. CONTROLS (ROW LAYOUT)
-========================================================= */
 .controls-row {
     display: flex;
     flex-direction: row;
@@ -194,10 +416,8 @@ body {
     overflow: hidden;
     height: 85px;
     position: relative;
-    transition: all 0.2s ease;
 }
 
-/* Colors */
 .block-approve {
     background-color: var(--green);
     color: black;
@@ -232,10 +452,6 @@ body {
     margin: 0;
 }
 
-    .ctrl-btn:active {
-        background: rgba(0,0,0,0.3);
-    }
-
 .ctrl-display {
     flex: 1;
     display: flex;
@@ -255,10 +471,9 @@ body {
     margin-bottom: 0px;
 }
 
-/* SVG Icons & Labels - Vertical Stack */
 .ctrl-label-box {
     display: flex;
-    flex-direction: column; /* Icon below text */
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 2px;
@@ -275,23 +490,14 @@ body {
     fill: currentColor;
 }
 
-    .truck-icon.outline {
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 2;
-    }
-
-/* =========================================================
-   6. FOOTER & TOGGLES (Updated Layout)
-========================================================= */
+/* Footer Toggles */
 .counter-total-bar {
     background: #222;
     padding: 6px 10px;
     border-radius: 4px;
     margin-top: auto;
-    /* Flex layout for summary + toggles */
     display: flex;
-    justify-content: space-between; /* Space between Text (Right) and Toggles (Left) */
+    justify-content: space-between;
     align-items: center;
     min-height: 42px;
 }
@@ -301,17 +507,11 @@ body {
     color: #888;
 }
 
-    .summary-text b {
-        color: #fff;
-    }
-
-/* New Toggles Container (Left side) */
 .footer-toggles {
     display: flex;
     gap: 8px;
 }
 
-/* Icon-only circular buttons */
 .toggle-icon-btn {
     background: transparent;
     border: 1px solid #444;
@@ -327,18 +527,6 @@ body {
     padding: 6px;
 }
 
-    .toggle-icon-btn svg {
-        width: 100%;
-        height: 100%;
-        fill: currentColor;
-    }
-
-    .toggle-icon-btn:hover {
-        border-color: #666;
-        color: #aaa;
-    }
-
-    /* Active state for toggles */
     .toggle-icon-btn.active.btn-empty {
         background: var(--accent);
         border-color: var(--accent);
@@ -352,7 +540,7 @@ body {
     }
 
 /* =========================================================
-   7. CUSTOM MODAL
+   6. MODALS & NAV
 ========================================================= */
 .modal-overlay {
     position: fixed;
@@ -386,12 +574,6 @@ body {
     box-shadow: 0 10px 25px rgba(0,0,0,0.5);
 }
 
-    .modal-content h3 {
-        margin-top: 0;
-        color: var(--accent);
-        margin-bottom: 15px;
-    }
-
 .modal-input {
     width: 100%;
     padding: 15px;
@@ -405,11 +587,6 @@ body {
     outline: none;
     font-weight: bold;
 }
-
-    .modal-input:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 5px rgba(255, 143, 63, 0.5);
-    }
 
 .modal-actions {
     display: flex;
@@ -437,9 +614,6 @@ body {
     color: white;
 }
 
-/* =========================================================
-   8. MAIN NAV & FABs (RESTORED SIZE)
-========================================================= */
 .bottom-nav {
     position: relative;
     width: 100%;
@@ -447,7 +621,6 @@ body {
     border-top: 2px solid var(--accent);
     display: flex;
     justify-content: space-around;
-    /* Increased Padding & Height */
     padding: 12px 0;
     min-height: 70px;
     z-index: 20;
@@ -462,24 +635,18 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* Increased Font Size */
     font-size: 0.9rem;
     flex: 1;
     cursor: pointer;
 }
 
     .nav-item .icon {
-        /* Explicit Icon Size */
         font-size: 1.5rem;
         margin-bottom: 4px;
     }
 
     .nav-item.active {
         color: var(--accent);
-    }
-
-    .nav-item:nth-child(4) {
-        display: none;
     }
 
 .fab-add, .fab-whatsapp {
@@ -532,8 +699,7 @@ body {
     align-items: center;
     justify-content: center;
 }
-
-/* Dashboard & Registry */
+/* Dashboard Helpers */
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
