@@ -8,6 +8,8 @@ let appData = {
     registry: []
 };
 
+let lastActiveTab = 'tab-counters';
+
 const LOG_TYPES = {
     APPROVED: 'approved', // Green
     EMPTY: 'empty',       // Orange
@@ -477,11 +479,34 @@ function importRegistryCSV(input) {
         lines.forEach(line => {
             const cols = line.split(',');
             if (cols.length >= 1 && cols[0].trim()) {
+                
+                let nameVal = cols[0].replace(/"/g, '').trim();
+                let idVal = cols[1]?.replace(/"/g, '').trim() || '';
+                let phoneVal = cols[2]?.replace(/"/g, '').trim() || '';
+                let orgVal = cols[3]?.replace(/"/g, '').trim() || '';
+
+                // SMART VALIDATION FIX
+                // If ID is suspicious (contains "UNOPS", empty, or very short), try to extract from name
+                if (idVal.length < 5 || idVal.toUpperCase().includes("UNOPS")) {
+                    // Try to find valid ID pattern in nameVal
+                    // Patterns: "SUNJ"+digits, "UN"+digits, "AUN"+digits, or 9 digit number
+                    const idPattern = /(SUNJ\d+|UN\d+|AUN\d+|\b\d{9}\b)/i;
+                    const match = nameVal.match(idPattern);
+                    
+                    if (match) {
+                        idVal = match[0].toUpperCase();
+                        // Remove the found ID from the name to clean it up
+                        nameVal = nameVal.replace(match[0], '').trim();
+                        // Clean up any trailing/leading non-word characters that might remain
+                        nameVal = nameVal.replace(/^[^a-zA-Z\u0590-\u05FF]+|[^a-zA-Z\u0590-\u05FF]+$/g, '');
+                    }
+                }
+
                 appData.registry.push({
-                    name: cols[0].replace(/"/g, '').trim(),
-                    id: cols[1]?.replace(/"/g, '').trim() || '',
-                    phone: cols[2]?.replace(/"/g, '').trim() || '',
-                    org: cols[3]?.replace(/"/g, '').trim() || ''
+                    name: nameVal,
+                    id: idVal,
+                    phone: phoneVal,
+                    org: orgVal
                 });
             }
         });
@@ -577,11 +602,53 @@ function shareWhatsApp() {
 }
 
 function getISODate(d) { return d.toISOString().split('T')[0]; }
+
+function toggleSettingsTab() {
+    const settingsTab = document.getElementById('tab-settings');
+    
+    // If we are currently in settings tab
+    if (settingsTab.classList.contains('active')) {
+        // Go back to last active tab
+        switchTab(lastActiveTab);
+    } else {
+        // We are going to settings, but first remember where we were (only if it's not settings itself)
+        // Actually switchTab logic already handles 'active' class toggling.
+        // We just need to switch to settings.
+        // But we want to ensure we don't overwrite lastActiveTab with 'tab-settings' inside switchTab logic prematurely if we want to be clean, 
+        // but switchTab sets lastActiveTab now.
+        
+        // Wait, switchTab implementation below sets lastActiveTab.
+        // So we just call switchTab('tab-settings').
+        // However, we need to make sure switchTab logic is updated to save lastActiveTab ONLY if it's NOT switching TO settings?
+        // OR we handle it here manually?
+        
+        // The requirement says: "Update switchTab logic... In every time the user moves to a regular tab (via switchTab), update lastActiveTab."
+        
+        // Let's implement switchTab correctly below.
+        switchTab('tab-settings');
+    }
+}
+
 function switchTab(id) {
+    // Requirement: "Every time the user moves to a regular tab (via switchTab), update lastActiveTab."
+    // Regular tabs are: tab-counters, tab-dashboard, tab-registry.
+    // tab-settings is not a "regular" tab in this context because we want to return FROM it.
+    
+    if (id !== 'tab-settings') {
+        lastActiveTab = id;
+    }
+
     document.querySelectorAll('.tab-content').forEach(d => d.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+    
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-    document.querySelector(`button[onclick="switchTab('${id}')"]`).classList.add('active');
+    // Note: Since we removed the settings button from the bottom nav, this selector might fail if id is tab-settings.
+    // So we add optional chaining or check.
+    const navBtn = document.querySelector(`button[onclick="switchTab('${id}')"]`);
+    if (navBtn) {
+        navBtn.classList.add('active');
+    }
+    
     if (id === 'tab-dashboard') renderDashboard();
 }
 

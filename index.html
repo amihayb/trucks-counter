@@ -14,14 +14,6 @@
             console.error("Critical Error:", msg);
             return false;
         };
-
-        function forceSettingsMode(msg) {
-            var tabs = document.querySelectorAll('.tab-content');
-            for (var i = 0; i < tabs.length; i++) { tabs[i].classList.remove('active'); }
-            var settings = document.getElementById('tab-settings');
-            if (settings) settings.classList.add('active');
-            if (msg) alert(msg);
-        }
     </script>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-WH800FFF02"></script>
@@ -45,7 +37,7 @@
         </div>
     </div>
 
-    <button id="rescue-btn" onclick="forceSettingsMode()">⚙️</button>
+    <button id="rescue-btn" onclick="toggleSettingsTab()">⚙️</button>
 
     <main id="main-content">
 
@@ -136,7 +128,7 @@
                     <button class="btn-danger" onclick="hardReset()">איפוס מלא (מחק הכל)</button>
                 </div>
 
-                <div class="version" style="text-align:center; color:#555; margin-top:20px;">TrucksLog v3.6</div>
+                <div class="version" style="text-align:center; color:#555; margin-top:20px;">TrucksLog v3.7</div>
             </div>
         </section>
     </main>
@@ -153,10 +145,6 @@
         <button class="nav-item" onclick="switchTab('tab-registry')">
             <span class="icon">📋</span>
             <span class="label">רשימות</span>
-        </button>
-        <button class="nav-item" onclick="switchTab('tab-settings')">
-            <span class="icon">⚙️</span>
-            <span class="label">הגדרות</span>
         </button>
     </nav>
 
