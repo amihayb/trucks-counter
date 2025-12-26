@@ -1,122 +1,602 @@
 /* =========================================================
-   STATE MANAGEMENT
+   STATE MANAGEMENT & CONFIG
 ========================================================= */
+
+const APP_VERSION = "TrucksLog v3.7 (Smart Lists)";
 
 let appData = {
     counters: [],
     logs: [],
-    registry: []
+    // Registry is now a list of File Objects
+    // Each Item: { id, fileName, fileDate, uploadTimestamp, isActive, data: [] }
+    registryFiles: [],
+    settings: {
+        maxRegistryFiles: 7
+    }
 };
 
 const LOG_TYPES = {
-    APPROVED: 'approved', // Green
-    EMPTY: 'empty',       // Orange
-    RETURNED: 'returned'  // Red
+    APPROVED: 'approved',
+    EMPTY: 'empty',
+    RETURNED: 'returned'
 };
 
-// --- ICONS (SVG) ---
-const ICON_LOADED = `<svg class="truck-icon" viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>`;
-const ICON_EMPTY = `<svg class="truck-icon" viewBox="0 0 24 24"><path d="M20 8h-3V4h-2v7H3v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>`;
-const ICON_RETURNED = `<svg class="truck-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg>`;
-
-// MODAL STATE
-let currentEditCounterId = null;
-let currentEditType = null;
+// SORT STATE
+let currentSort = { col: 'name', dir: 'asc' }; // 'asc' or 'desc'
 
 /* =========================================================
    INIT & DATA LOADING
 ========================================================= */
 
 function init() {
+    // 1. Enforce Version Display
+    const verEl = document.querySelector('.version');
+    if (verEl) verEl.innerText = APP_VERSION;
+
+    // 2. Load Data
     try {
-        const stored = localStorage.getItem("trucksLogData_v2");
+        const stored = localStorage.getItem("trucksLogData_v3");
         if (stored) {
             appData = JSON.parse(stored);
         } else {
-            const oldCounters = JSON.parse(localStorage.getItem("counters"));
-            if (oldCounters && Array.isArray(oldCounters) && oldCounters.length > 0) {
-                appData.counters = oldCounters.map((c, idx) => ({
-                    id: "gen_" + idx + "_" + Date.now(),
-                    name: c.name
-                }));
+            // Try load v2 and migrate
+            const oldStored = localStorage.getItem("trucksLogData_v2");
+            if (oldStored) {
+                const oldData = JSON.parse(oldStored);
+                appData.counters = oldData.counters || [];
+                appData.logs = oldData.logs || [];
+                // MIGRATE OLD REGISTRY
+                if (oldData.registry && Array.isArray(oldData.registry) && oldData.registry.length > 0) {
+                    migrateOldRegistry(oldData.registry);
+                }
+            } else {
+                // Fresh Start
+                seedInitialData();
             }
         }
     } catch (e) {
         console.error("Data load error", e);
-        appData = { counters: [], logs: [], registry: [] };
+        seedInitialData();
     }
 
-    if (!appData.counters || appData.counters.length === 0) {
-        appData.counters = [
-            { id: "c1", name: "WFP" },
-            { id: "c2", name: "סקטור" },
-            { id: "c3", name: "WCK" },
-            { id: "c4", name: "מלגזנים" }
-        ];
-        save();
-    }
+    // Ensure Settings Exist
+    if (!appData.settings) appData.settings = { maxRegistryFiles: 7 };
 
-    setupModalListeners();
+    setupEventListeners();
     renderCounters();
     updateLiveTotal();
 
-    if (document.getElementById('tab-dashboard') && document.getElementById('tab-dashboard').classList.contains('active')) {
-        renderDashboard();
-    }
+    // Check active tab and render if needed
+    if (document.getElementById('tab-dashboard') && document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
+    if (document.getElementById('tab-registry') && document.getElementById('tab-registry').classList.contains('active')) renderRegistryTab();
 }
 
-function setupModalListeners() {
-    const input = document.getElementById('edit-qty-input');
-    if (!input) return;
+function seedInitialData() {
+    appData.counters = [
+        { id: "c1", name: "WFP" },
+        { id: "c2", name: "סקטור" }
+    ];
+    save();
+}
 
-    input.addEventListener("keyup", function (event) {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            saveEditFromModal();
-        } else if (event.key === "Escape") {
-            event.preventDefault();
-            closeEditModal();
-        }
-    });
+function migrateOldRegistry(oldList) {
+    // Convert flat list to a "File"
+    const fileObj = {
+        id: "legacy_" + Date.now(),
+        fileName: "ארכיון ישן (ייבוא)",
+        fileDate: getISODate(new Date()).split('-').reverse().join('/'),
+        uploadTimestamp: Date.now(),
+        isActive: true,
+        data: oldList.map(row => ({
+            name: row.name,
+            id: row.id,
+            phone: normalizePhone(row.phone),
+            org: row.org,
+            truck: "", trailer: "", extra: ""
+        }))
+    };
+    appData.registryFiles.push(fileObj);
+    save();
+}
+
+function setupEventListeners() {
+    // Modal Listeners
+    const input = document.getElementById('edit-qty-input');
+    if (input) {
+        input.addEventListener("keyup", (e) => {
+            if (e.key === "Enter") { e.preventDefault(); saveEditFromModal(); }
+            else if (e.key === "Escape") { e.preventDefault(); closeEditModal(); }
+        });
+    }
+
+    // Registry Table Sort Listeners
+    const ths = document.querySelectorAll('.registry-table th');
+    if (ths.length >= 2) {
+        ths[0].onclick = () => sortRegistry('name'); // Name Header
+        ths[1].onclick = () => sortRegistry('id');   // ID Header
+        ths[0].style.cursor = 'pointer';
+        ths[1].style.cursor = 'pointer';
+    }
 }
 
 function save() {
-    localStorage.setItem("trucksLogData_v2", JSON.stringify(appData));
+    localStorage.setItem("trucksLogData_v3", JSON.stringify(appData));
 }
 
 /* =========================================================
-   CORE LOGIC & HELPERS
+   REGISTRY: FILE MANAGEMENT
 ========================================================= */
 
-// HELPER: Should this log be counted based on visibility settings?
-function isVisibleLog(log) {
-    const c = appData.counters.find(x => x.id === log.counterId);
-    if (!c) return true;
+// 1. UPLOAD HANDLER
+function handleFilesUpload(input) {
+    const files = Array.from(input.files);
+    if (!files.length) return;
 
-    if (log.type === LOG_TYPES.APPROVED) return true;
+    const currentCount = appData.registryFiles.length;
+    const max = appData.settings.maxRegistryFiles || 7;
 
-    if (log.type === LOG_TYPES.EMPTY) {
-        return c.hideEmpty !== true;
+    if (currentCount + files.length > max) {
+        alert(`שגיאה: ניתן לשמור עד ${max} קבצים.\nיש למחוק קבצים ישנים לפני הוספת חדשים.`);
+        input.value = ""; // Reset
+        return;
     }
 
-    if (log.type === LOG_TYPES.RETURNED) {
-        return c.hideReturned !== true;
-    }
+    let processed = 0;
+    files.forEach(file => {
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            alert(`הקובץ ${file.name} אינו CSV.`);
+            return;
+        }
 
-    return true;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const content = e.target.result;
+            const parsedData = smartParseCSV(content, file.name);
+
+            // Guess Date from filename
+            const dateMatch = file.name.match(/(\d{1,2})[.-](\d{1,2})[.-](\d{2,4})/);
+            let fileDateStr = getISODate(new Date()).split('-').reverse().join('/'); // Default today
+            if (dateMatch) {
+                fileDateStr = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`; // DD/MM/YYYY
+            }
+
+            const newFileObj = {
+                // FIXED: Replaced substr with substring
+                id: "file_" + Date.now() + Math.random().toString(36).substring(2, 7),
+                fileName: file.name,
+                fileDate: fileDateStr,
+                uploadTimestamp: Date.now(),
+                isActive: true, // Auto select new files
+                data: parsedData
+            };
+
+            appData.registryFiles.push(newFileObj);
+            processed++;
+
+            if (processed === files.length) {
+                save();
+                renderRegistryTab();
+                // Open drawer to show success
+                document.getElementById('files-drawer').classList.add('open');
+                input.value = "";
+            }
+        };
+        reader.readAsText(file);
+    });
 }
+
+// 2. PARSER ENGINE
+function smartParseCSV(csvText, filename) {
+    const lines = csvText.split(/\r\n|\n/);
+    if (lines.length < 2) return [];
+
+    // DETECT TYPE: "Messy UN" vs "Standard"
+    const headerLine = lines[0] + (lines[1] || "");
+    const isMessy = !headerLine.match(/(שם|Name|ת"ז|ID|טלפון|Phone|משאית|Plate|ארגון|Org|ספק)/i);
+
+    if (isMessy) {
+        return parseMessyFile(lines);
+    } else {
+        return parseStandardFile(lines);
+    }
+}
+
+function parseStandardFile(lines) {
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
+
+    // Map Indices
+    let idxName = -1, idxId = -1, idxPhone = -1, idxOrg = -1, idxPlate = -1;
+
+    headers.forEach((h, i) => {
+        if (h.match(/(שם|name)/)) idxName = i;
+        else if (h.match(/(ת"ז|ת.ז|זהות|id|passport|דרכון)/)) idxId = i;
+        else if (h.match(/(טלפון|phone|נייד|mobile|cell)/)) idxPhone = i;
+        else if (h.match(/(ארגון|org|ספק|provider|transporter)/)) idxOrg = i;
+        else if (h.match(/(משאית|plate|ל"ז|רישוי)/)) idxPlate = i;
+    });
+
+    const results = [];
+
+    // Start from line 1 (skip header)
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Handle CSV split
+        const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/"/g, ''));
+
+        let name = idxName > -1 ? cols[idxName] : "";
+        let idVal = idxId > -1 ? cols[idxId] : "";
+        let phone = idxPhone > -1 ? cols[idxPhone] : "";
+        let org = idxOrg > -1 ? cols[idxOrg] : "";
+        let truck = idxPlate > -1 ? cols[idxPlate] : "";
+        let trailer = "";
+        let extra = [];
+
+        // --- SMART FIXES ---
+
+        // 1. Swap Check: Phone vs Plate
+        if (isLikelyPlate(phone) && isLikelyPhone(truck)) {
+            let temp = phone; phone = truck; truck = temp;
+        }
+
+        // 2. Fallback scan
+        if (!idVal || !phone || !truck) {
+            cols.forEach((col, idx) => {
+                if (idx === idxName) return;
+                if (!idVal && isLikelyID(col)) idVal = col;
+                else if (!phone && isLikelyPhone(col)) phone = col;
+                else if (!truck && isLikelyPlate(col)) truck = col;
+                else if (isLikelyPlate(col) && truck && truck !== col) trailer = col;
+                else if (col.length > 2 && idx !== idxOrg && idx !== idxName) extra.push(col);
+            });
+        }
+
+        // Also collect extra info from non-mapped columns if standard parsing used
+        if (extra.length === 0) {
+            cols.forEach((col, idx) => {
+                if ([idxName, idxId, idxPhone, idxOrg, idxPlate].includes(idx)) return;
+                if (col && col.length > 1) extra.push(col);
+            });
+        }
+
+        if (name && name.length > 1) {
+            results.push({
+                name: name,
+                id: idVal,
+                phone: normalizePhone(phone),
+                org: org,
+                truck: truck ? formatPlate(truck) : "",
+                trailer: trailer ? formatPlate(trailer) : "",
+                extra: extra.join(', ')
+            });
+        }
+    }
+    return results;
+}
+
+function parseMessyFile(lines) {
+    const results = [];
+    const startLine = 4;
+
+    for (let i = startLine; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const cols = line.split(',').map(c => c.trim().replace(/"/g, ''));
+
+        let name = cols[1] || "";
+        let idVal = cols[2] || "";
+
+        if (!name) continue;
+
+        if (!idVal) {
+            const match = name.match(/(\d{9}|UN\d+|SUNJ\d+|AUN\d+)/i);
+            if (match) {
+                idVal = match[0];
+                name = name.replace(match[0], '').trim();
+            }
+        }
+
+        let org = "פרטי";
+        const lineStr = line.toUpperCase();
+        if (lineStr.includes("WFP")) org = "WFP";
+        else if (lineStr.includes("UNICEF")) org = "UNICEF";
+        else if (lineStr.includes("UNOPS")) org = "UNOPS";
+        else if (lineStr.includes("UK MED")) org = "UK MED";
+
+        results.push({
+            name: name,
+            id: idVal,
+            phone: "",
+            org: org,
+            truck: "", trailer: "", extra: "קובץ או\"ם"
+        });
+    }
+    return results;
+}
+
+// --- HELPER VALIDATORS ---
+
+function isLikelyPhone(str) {
+    if (!str) return false;
+    const s = str.replace(/\D/g, '');
+    return (s.startsWith('05') || s.startsWith('972') || s.startsWith('59') || s.startsWith('56')) && s.length >= 9;
+}
+
+function isLikelyID(str) {
+    if (!str) return false;
+    if (/^\d{9}$/.test(str)) return true;
+    if (/^[A-Z]+\d+/.test(str)) return true;
+    return false;
+}
+
+function isLikelyPlate(str) {
+    if (!str) return false;
+    const s = str.replace(/\D/g, '');
+    if ((s.length === 7 || s.length === 8) && !s.startsWith('05')) return true;
+    if (str.includes('-') && str.length < 12 && s.length > 5) return true;
+    return false;
+}
+
+function normalizePhone(raw) {
+    if (!raw) return "";
+    let s = raw.replace(/\D/g, '');
+    if (s.startsWith('972')) s = '0' + s.substring(3);
+    if (s.length === 9 && s.startsWith('5')) s = '0' + s;
+    if (s.length >= 10) {
+        return `${s.substring(0, 3)}-${s.substring(3, 6)}-${s.substring(6)}`;
+    }
+    return raw;
+}
+
+function formatPlate(raw) {
+    if (!raw) return "";
+    let s = raw.replace(/\D/g, '');
+    if (s.length === 8) return `${s.substring(0, 3)}-${s.substring(3, 5)}-${s.substring(5)}`;
+    if (s.length === 7) return `${s.substring(0, 2)}-${s.substring(2, 5)}-${s.substring(5)}`;
+    return raw;
+}
+
+
+/* =========================================================
+   REGISTRY: UI & INTERACTIONS
+========================================================= */
+
+function renderRegistryTab() {
+    renderRegistryFilesList();
+    filterRegistry();
+}
+
+// 1. DRAWER (File List)
+function renderRegistryFilesList() {
+    const container = document.getElementById('file-list-container');
+    const summary = document.getElementById('files-summary-text');
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    // Sort files by Upload Timestamp (Newest first)
+    appData.registryFiles.sort((a, b) => b.uploadTimestamp - a.uploadTimestamp);
+
+    const count = appData.registryFiles.length;
+    summary.innerText = `📂 ${count} קבצים טעונים`;
+
+    appData.registryFiles.forEach((file, idx) => {
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.innerHTML = `
+            <input type="checkbox" ${file.isActive ? 'checked' : ''} 
+                   onchange="toggleFileActive('${file.id}')" style="margin-left:10px; transform:scale(1.2);">
+            
+            <div class="file-info" onclick="filterBySingleFile('${file.id}')">
+                <div>
+                    <div class="file-name">${file.fileName}</div>
+                    <div class="file-date">תאריך: ${file.fileDate}</div>
+                </div>
+            </div>
+
+            <button class="file-delete-btn text-red" onclick="deleteRegistryFile('${file.id}')">🗑️</button>
+        `;
+        container.appendChild(div);
+    });
+
+    const setInp = document.getElementById('setting-max-files');
+    if (setInp) setInp.min = count;
+}
+
+function toggleFilesDrawer() {
+    document.getElementById('files-drawer').classList.toggle('open');
+}
+
+function toggleFileActive(fileId) {
+    const f = appData.registryFiles.find(x => x.id === fileId);
+    if (f) { f.isActive = !f.isActive; save(); filterRegistry(); }
+}
+
+function toggleAllFiles(status) {
+    appData.registryFiles.forEach(f => f.isActive = status);
+    save(); renderRegistryFilesList(); filterRegistry();
+}
+
+function deleteRegistryFile(fileId) {
+    if (confirm("למחוק קובץ זה מהרשימה?")) {
+        appData.registryFiles = appData.registryFiles.filter(f => f.id !== fileId);
+        save(); renderRegistryTab();
+    }
+}
+
+function deleteAllFiles() {
+    if (confirm("האם אתה בטוח? פעולה זו תמחק את כל הרשימות.")) {
+        appData.registryFiles = [];
+        save(); renderRegistryTab();
+    }
+}
+
+// 2. TABLE RENDERING & FILTER
+function filterRegistry() {
+    const q = document.getElementById("registrySearch").value.toLowerCase();
+    const tbody = document.getElementById('registry-table-body');
+    const emptyState = document.getElementById('registry-empty-state');
+
+    tbody.innerHTML = "";
+
+    let allRows = [];
+
+    // Iterate active files
+    appData.registryFiles.filter(f => f.isActive).forEach(file => {
+        // Prepare timestamp string for search
+        const tsDate = new Date(file.uploadTimestamp);
+        const timeStr = tsDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+
+        file.data.forEach(row => {
+            // FIX: Search now includes Dates, Filename, and Extra info
+            const txt = `${row.name} ${row.id} ${row.truck} ${row.org} ${row.extra} ${file.fileName} ${file.fileDate} ${timeStr}`.toLowerCase();
+
+            if (q === "" || txt.includes(q)) {
+                // Attach metadata for display
+                row._metaDate = file.fileDate;
+                row._metaFile = file.fileName;
+                row._uploadTs = file.uploadTimestamp;
+                allRows.push(row);
+            }
+        });
+    });
+
+    if (allRows.length === 0) {
+        emptyState.style.display = "block";
+        return;
+    }
+    emptyState.style.display = "none";
+
+    // Sort
+    allRows.sort((a, b) => {
+        let valA = (a[currentSort.col] || "").toString();
+        let valB = (b[currentSort.col] || "").toString();
+        if (currentSort.dir === 'asc') return valA.localeCompare(valB);
+        else return valB.localeCompare(valA);
+    });
+
+    // Render limit
+    const limit = q === "" ? 100 : 500;
+
+    allRows.slice(0, limit).forEach(row => {
+        // FIXED: Replaced substr with substring
+        const rowId = "r_" + Math.random().toString(36).substring(2, 11);
+        const tsDate = new Date(row._uploadTs);
+        const timeStr = tsDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+
+        // Main Row
+        const tr = document.createElement('tr');
+        tr.className = 'row-main';
+        tr.onclick = () => toggleRowDetails(rowId);
+        tr.innerHTML = `
+            <td><strong>${row.name}</strong></td>
+            <td>${row.id}</td>
+            <td>${row.org}</td>
+            <td dir="ltr" style="text-align:right">${row.phone}</td>
+        `;
+        tbody.appendChild(tr);
+
+        // Expanded Row
+        const trExp = document.createElement('tr');
+        trExp.className = 'row-expanded';
+        trExp.id = rowId;
+        trExp.innerHTML = `
+            <td colspan="4">
+                <div class="expanded-details">
+                    <div class="detail-box">
+                        <span class="detail-label">משאית</span>
+                        <div dir="ltr">${row.truck || '-'}</div>
+                    </div>
+                    <div class="detail-box">
+                        <span class="detail-label">נגרר</span>
+                        <div dir="ltr">${row.trailer || '-'}</div>
+                    </div>
+                    <div class="detail-box">
+                        <span class="detail-label">מקור</span>
+                        <div>${row._metaDate} (${row._metaFile})</div>
+                    </div>
+                     <div class="detail-box">
+                        <span class="detail-label">נקלט ב:</span>
+                        <div>${timeStr}</div>
+                    </div>
+                    <div class="detail-box" style="grid-column: span 2;">
+                        <span class="detail-label">מידע נוסף</span>
+                        <div>${row.extra || '-'}</div>
+                    </div>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(trExp);
+    });
+}
+
+function toggleRowDetails(id) {
+    const el = document.getElementById(id);
+    if (el.classList.contains('open')) el.classList.remove('open');
+    else el.classList.add('open');
+}
+
+// 3. SORTING
+function sortRegistry(colName) {
+    if (currentSort.col === colName) {
+        currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.col = colName;
+        currentSort.dir = 'asc';
+    }
+    filterRegistry();
+}
+
+// 4. VOICE SEARCH
+function startVoiceSearch() {
+    if (!('webkitSpeechRecognition' in window)) {
+        alert("הדפדפן שלך לא תומך בחיפוש קולי");
+        return;
+    }
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'he-IL';
+    recognition.start();
+
+    const btn = document.getElementById('voice-search-btn');
+    btn.style.color = 'red';
+
+    recognition.onresult = (event) => {
+        const txt = event.results[0][0].transcript;
+        document.getElementById('registrySearch').value = txt;
+        filterRegistry();
+        btn.style.color = '';
+    };
+    recognition.onerror = () => btn.style.color = '';
+    recognition.onend = () => btn.style.color = '';
+}
+
+// 5. QUICK FILTER
+function filterBySingleFile(fileId) {
+    appData.registryFiles.forEach(f => f.isActive = (f.id === fileId));
+    save();
+    renderRegistryFilesList();
+    filterRegistry();
+    toggleFilesDrawer();
+}
+
+/* =========================================================
+   SETTINGS & HELPERS
+========================================================= */
+
+function updateMaxFilesSetting(val) {
+    appData.settings.maxRegistryFiles = parseInt(val);
+    save();
+}
+
+// ... COUNTER LOGIC (Standard) ...
 
 function addLog(counterId, type) {
     const now = new Date();
     appData.logs.push({
         id: Date.now().toString(36) + Math.random().toString(36).substring(2),
-        counterId: counterId,
-        timestamp: now.getTime(),
-        dateStr: getISODate(now),
-        type: type
+        counterId: counterId, timestamp: now.getTime(), dateStr: getISODate(now), type: type
     });
-
-    // Auto-reveal: If adding to a section, make sure it's visible
     if (type !== LOG_TYPES.APPROVED) {
         const c = appData.counters.find(x => x.id === counterId);
         if (c) {
@@ -124,9 +604,7 @@ function addLog(counterId, type) {
             if (type === LOG_TYPES.RETURNED) c.hideReturned = false;
         }
     }
-
-    save();
-    refreshUI();
+    save(); refreshUI();
 }
 
 function removeLastLog(counterId, type) {
@@ -135,138 +613,46 @@ function removeLastLog(counterId, type) {
     for (let i = appData.logs.length - 1; i >= 0; i--) {
         const l = appData.logs[i];
         if (l.counterId === counterId && l.type === type && l.dateStr === todayStr) {
-            indexToRemove = i;
-            break;
+            indexToRemove = i; break;
         }
     }
     if (indexToRemove !== -1) {
         appData.logs.splice(indexToRemove, 1);
-        save();
-        refreshUI();
+        save(); refreshUI();
     }
 }
 
 function toggleSection(counterId, type) {
     const c = appData.counters.find(x => x.id === counterId);
     if (!c) return;
-
     const todayStr = getISODate(new Date());
-    const count = appData.logs.filter(l =>
-        l.counterId === counterId && l.type === type && l.dateStr === todayStr
-    ).length;
+    const count = appData.logs.filter(l => l.counterId === counterId && l.type === type && l.dateStr === todayStr).length;
 
-    let isCurrentlyHidden;
-
+    let isHidden;
     if (type === LOG_TYPES.EMPTY) {
-        if (c.hideEmpty === undefined) isCurrentlyHidden = (count === 0);
-        else isCurrentlyHidden = c.hideEmpty;
-
-        c.hideEmpty = !isCurrentlyHidden;
-
-    } else if (type === LOG_TYPES.RETURNED) {
-        if (c.hideReturned === undefined) isCurrentlyHidden = (count === 0);
-        else isCurrentlyHidden = c.hideReturned;
-
-        c.hideReturned = !isCurrentlyHidden;
+        isHidden = (c.hideEmpty === undefined) ? (count === 0) : c.hideEmpty;
+        c.hideEmpty = !isHidden;
+    } else {
+        isHidden = (c.hideReturned === undefined) ? (count === 0) : c.hideReturned;
+        c.hideReturned = !isHidden;
     }
-
-    save();
-    refreshUI();
+    save(); refreshUI();
 }
-
-// --- MODAL LOGIC ---
-
-function openEditModal(counterId, type) {
-    const todayStr = getISODate(new Date());
-    const currentCount = appData.logs.filter(l =>
-        l.counterId === counterId && l.type === type && l.dateStr === todayStr
-    ).length;
-
-    currentEditCounterId = counterId;
-    currentEditType = type;
-
-    const modal = document.getElementById('edit-modal');
-    const input = document.getElementById('edit-qty-input');
-    const title = document.getElementById('modal-title');
-
-    title.innerText = `ערוך כמות: ${getTypeName(type)}`;
-    input.value = currentCount;
-    modal.classList.add('open');
-
-    setTimeout(() => {
-        input.focus();
-        input.select();
-    }, 100);
-}
-
-function closeEditModal() {
-    document.getElementById('edit-modal').classList.remove('open');
-    document.getElementById('edit-qty-input').blur();
-    currentEditCounterId = null;
-    currentEditType = null;
-}
-
-function saveEditFromModal() {
-    if (!currentEditCounterId || !currentEditType) return;
-
-    const input = document.getElementById('edit-qty-input');
-    const val = input.value === "" ? 0 : parseInt(input.value);
-
-    if (isNaN(val) || val < 0) {
-        alert("נא להכניס מספר תקין");
-        return;
-    }
-
-    const todayStr = getISODate(new Date());
-    const currentCount = appData.logs.filter(l =>
-        l.counterId === currentEditCounterId && l.type === currentEditType && l.dateStr === todayStr
-    ).length;
-
-    const diff = val - currentCount;
-    if (diff > 0) {
-        for (let i = 0; i < diff; i++) addLog(currentEditCounterId, currentEditType);
-    } else if (diff < 0) {
-        for (let i = 0; i < Math.abs(diff); i++) removeLastLog(currentEditCounterId, currentEditType);
-    }
-
-    closeEditModal();
-}
-
-// ------------------------------------------
 
 function resetCounterLogs(counterId) {
-    if (confirm("האם אתה בטוח שברצונך לאפס את המונה הזה להיום?")) {
+    if (confirm("לאפס מונה זה להיום?")) {
         const todayStr = getISODate(new Date());
         appData.logs = appData.logs.filter(l => !(l.counterId === counterId && l.dateStr === todayStr));
-
-        // RESET DISPLAY STATE: Close sections back to default
         const c = appData.counters.find(x => x.id === counterId);
-        if (c) {
-            delete c.hideEmpty;
-            delete c.hideReturned;
-        }
-
-        save();
-        refreshUI();
+        if (c) { delete c.hideEmpty; delete c.hideReturned; }
+        save(); refreshUI();
     }
 }
-
-function refreshUI() {
-    renderCounters();
-    updateLiveTotal();
-    if (document.getElementById('tab-dashboard') && document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
-}
-
-/* =========================================================
-   RENDERING
-========================================================= */
 
 function renderCounters() {
     const container = document.getElementById("counters-list");
     if (!container) return;
-
     const scrollPos = document.getElementById("main-content")?.scrollTop || 0;
-
     container.innerHTML = "";
 
     const todayStr = getISODate(new Date());
@@ -278,38 +664,25 @@ function renderCounters() {
         const empty = cLogs.filter(l => l.type === LOG_TYPES.EMPTY).length;
         const returned = cLogs.filter(l => l.type === LOG_TYPES.RETURNED).length;
 
-        // VISIBILITY LOGIC
-        let isEmptyHidden = c.hideEmpty;
-        if (isEmptyHidden === undefined) isEmptyHidden = (empty === 0);
+        let hideEmpty = (c.hideEmpty === undefined) ? (empty === 0) : c.hideEmpty;
+        let hideReturned = (c.hideReturned === undefined) ? (returned === 0) : c.hideReturned;
 
-        let isReturnedHidden = c.hideReturned;
-        if (isReturnedHidden === undefined) isReturnedHidden = (returned === 0);
-
-        // TOTALS CALCULATION
-        const effectiveEmpty = isEmptyHidden ? 0 : empty;
-        const effectiveReturned = isReturnedHidden ? 0 : returned;
-
+        const effectiveEmpty = hideEmpty ? 0 : empty;
         const totalArrivals = approved + effectiveEmpty;
 
-        // CSS State
-        const displayEmpty = isEmptyHidden ? 'none' : 'flex';
-        const displayReturned = isReturnedHidden ? 'none' : 'flex';
-        const emptyBtnActive = !isEmptyHidden ? 'active' : '';
-        const returnedBtnActive = !isReturnedHidden ? 'active' : '';
+        const ICON_LOADED = `<svg class="truck-icon" viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>`;
+        const ICON_EMPTY = `<svg class="truck-icon" viewBox="0 0 24 24"><path d="M20 8h-3V4h-2v7H3v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>`;
+        const ICON_RETURNED = `<svg class="truck-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg>`;
 
         const div = document.createElement("div");
         div.className = "counter-card";
-        div.id = `card-${c.id}`;
-
         div.innerHTML = `
             <div class="card-header">
                 <button class="header-btn btn-reset" onclick="event.stopPropagation(); resetCounterLogs('${c.id}')">↺</button>
                 <span class="header-title" onclick="renameCounter('${c.id}', '${c.name}')">${c.name}</span>
                 <button class="header-btn btn-delete" onclick="event.stopPropagation(); deleteCounter('${c.id}')">✕</button>
             </div>
-            
             <div class="controls-row">
-                
                 <div class="control-block block-approve">
                     <div class="control-actions">
                         <button class="ctrl-btn" onclick="addLog('${c.id}', '${LOG_TYPES.APPROVED}')">+</button>
@@ -320,8 +693,7 @@ function renderCounters() {
                         <button class="ctrl-btn" onclick="removeLastLog('${c.id}', '${LOG_TYPES.APPROVED}')">−</button>
                     </div>
                 </div>
-
-                <div id="block-${LOG_TYPES.EMPTY}-${c.id}" class="control-block block-empty" style="display:${displayEmpty}">
+                <div class="control-block block-empty" style="display:${hideEmpty ? 'none' : 'flex'}">
                     <div class="control-actions">
                         <button class="ctrl-btn" onclick="addLog('${c.id}', '${LOG_TYPES.EMPTY}')">+</button>
                         <div class="ctrl-display" onclick="openEditModal('${c.id}', '${LOG_TYPES.EMPTY}')">
@@ -331,8 +703,7 @@ function renderCounters() {
                         <button class="ctrl-btn" onclick="removeLastLog('${c.id}', '${LOG_TYPES.EMPTY}')">−</button>
                     </div>
                 </div>
-
-                <div id="block-${LOG_TYPES.RETURNED}-${c.id}" class="control-block block-return" style="display:${displayReturned}">
+                <div class="control-block block-return" style="display:${hideReturned ? 'none' : 'flex'}">
                     <div class="control-actions">
                         <button class="ctrl-btn" onclick="addLog('${c.id}', '${LOG_TYPES.RETURNED}')">+</button>
                         <div class="ctrl-display" onclick="openEditModal('${c.id}', '${LOG_TYPES.RETURNED}')">
@@ -342,248 +713,136 @@ function renderCounters() {
                         <button class="ctrl-btn" onclick="removeLastLog('${c.id}', '${LOG_TYPES.RETURNED}')">−</button>
                     </div>
                 </div>
-            
             </div>
-
             <div class="counter-total-bar">
-                <span class="summary-text">סה״כ משאיות: <b>${totalArrivals}</b> | הוחזרו: <b style="color:#e74c3c">${effectiveReturned}</b></span>
-                
+                <span class="summary-text">סה״כ: <b>${totalArrivals}</b> | הוחזרו: <b style="color:#e74c3c">${hideReturned ? 0 : returned}</b></span>
                 <div class="footer-toggles">
-                    <button id="btn-toggle-${LOG_TYPES.EMPTY}-${c.id}" 
-                            class="toggle-icon-btn btn-empty ${emptyBtnActive}" 
-                            onclick="toggleSection('${c.id}', '${LOG_TYPES.EMPTY}')">
-                        ${ICON_EMPTY}
-                    </button>
-                    <button id="btn-toggle-${LOG_TYPES.RETURNED}-${c.id}" 
-                            class="toggle-icon-btn btn-returned ${returnedBtnActive}" 
-                            onclick="toggleSection('${c.id}', '${LOG_TYPES.RETURNED}')">
-                        ${ICON_RETURNED}
-                    </button>
+                    <button class="toggle-icon-btn btn-empty ${!hideEmpty ? 'active' : ''}" onclick="toggleSection('${c.id}', '${LOG_TYPES.EMPTY}')">${ICON_EMPTY}</button>
+                    <button class="toggle-icon-btn btn-returned ${!hideReturned ? 'active' : ''}" onclick="toggleSection('${c.id}', '${LOG_TYPES.RETURNED}')">${ICON_RETURNED}</button>
                 </div>
             </div>
         `;
         container.appendChild(div);
     });
-
-    const content = document.getElementById("main-content");
-    if (content) content.scrollTop = scrollPos;
+    if (document.getElementById("main-content")) document.getElementById("main-content").scrollTop = scrollPos;
 }
 
 function updateLiveTotal() {
-    const todayStr = getISODate(new Date());
-    const count = appData.logs.filter(l =>
-        l.dateStr === todayStr &&
-        l.type !== LOG_TYPES.RETURNED &&
-        isVisibleLog(l)
-    ).length;
-
+    const today = getISODate(new Date());
+    let count = 0;
+    appData.logs.forEach(l => {
+        if (l.dateStr === today && l.type !== LOG_TYPES.RETURNED) {
+            const c = appData.counters.find(x => x.id === l.counterId);
+            if (c) {
+                if (l.type === LOG_TYPES.EMPTY && c.hideEmpty) return;
+                count++;
+            }
+        }
+    });
     const el = document.getElementById("live-total");
     if (el) el.innerText = `היום: ${count}`;
 }
 
-function getTypeName(type) {
-    if (type === LOG_TYPES.APPROVED) return "הועמסו";
-    if (type === LOG_TYPES.EMPTY) return "ריק";
-    if (type === LOG_TYPES.RETURNED) return "הוחזר";
-    return type;
-}
+// ... CRUD, MODAL, EXPORT ...
 
-function addNewCounter() {
-    const name = prompt("שם הארגון החדש:");
-    if (name) {
-        appData.counters.push({ id: "c_" + Date.now(), name: name });
-        save(); renderCounters();
-    }
-}
+function addNewCounter() { const n = prompt("שם הארגון:"); if (n) { appData.counters.push({ id: "c_" + Date.now(), name: n }); save(); renderCounters(); } }
+function deleteCounter(id) { if (confirm("למחוק?")) { appData.counters = appData.counters.filter(c => c.id !== id); save(); renderCounters(); } }
+function renameCounter(id, old) { const n = prompt("שם חדש:", old); if (n) { const c = appData.counters.find(x => x.id === id); if (c) { c.name = n; save(); renderCounters(); } } }
 
-function deleteCounter(id) {
-    if (confirm("למחוק מונה זה?")) {
-        appData.counters = appData.counters.filter(c => c.id !== id);
-        save(); renderCounters();
-    }
+let curEdit = null;
+function openEditModal(cid, type) {
+    curEdit = { cid, type };
+    const today = getISODate(new Date());
+    const count = appData.logs.filter(l => l.counterId === cid && l.type === type && l.dateStr === today).length;
+    document.getElementById('edit-qty-input').value = count;
+    document.getElementById('edit-modal').classList.add('open');
+    setTimeout(() => document.getElementById('edit-qty-input').focus(), 100);
 }
-
-function renameCounter(id, oldName) {
-    const newName = prompt("שנה שם:", oldName);
-    if (newName) {
-        const c = appData.counters.find(x => x.id === id);
-        if (c) { c.name = newName; save(); renderCounters(); }
-    }
+function closeEditModal() { document.getElementById('edit-modal').classList.remove('open'); curEdit = null; }
+function saveEditFromModal() {
+    if (!curEdit) return;
+    const val = parseInt(document.getElementById('edit-qty-input').value);
+    if (isNaN(val) || val < 0) return;
+    const today = getISODate(new Date());
+    const current = appData.logs.filter(l => l.counterId === curEdit.cid && l.type === curEdit.type && l.dateStr === today).length;
+    const diff = val - current;
+    if (diff > 0) { for (let i = 0; i < diff; i++) addLog(curEdit.cid, curEdit.type); }
+    else if (diff < 0) { for (let i = 0; i < Math.abs(diff); i++) removeLastLog(curEdit.cid, curEdit.type); }
+    closeEditModal();
 }
 
 function renderDashboard() {
-    const todayStr = getISODate(new Date());
-    const todayLogs = appData.logs.filter(l => l.dateStr === todayStr);
+    const today = getISODate(new Date());
+    const validLogs = appData.logs.filter(l => l.dateStr === today && l.type !== LOG_TYPES.RETURNED);
+    document.getElementById("stat-today").innerText = validLogs.length;
+    document.getElementById("stat-returned").innerText = appData.logs.filter(l => l.dateStr === today && l.type === LOG_TYPES.RETURNED).length;
 
-    const visibleLogs = todayLogs.filter(l => isVisibleLog(l));
-
-    const totalCount = visibleLogs.filter(l => l.type !== LOG_TYPES.RETURNED).length;
-    document.getElementById("stat-today").innerText = totalCount;
-
-    const returnedCount = visibleLogs.filter(l => l.type === LOG_TYPES.RETURNED).length;
-    document.getElementById("stat-returned").innerText = returnedCount;
-
-    const validLogs = appData.logs.filter(l =>
-        l.type !== LOG_TYPES.RETURNED && isVisibleLog(l)
-    ).length;
     const uniqueDays = new Set(appData.logs.map(l => l.dateStr)).size || 1;
-    document.getElementById("stat-avg").innerText = Math.round(validLogs / uniqueDays);
+    const allValid = appData.logs.filter(l => l.type !== LOG_TYPES.RETURNED).length;
+    document.getElementById("stat-avg").innerText = Math.round(allValid / uniqueDays);
 
     const chart = document.getElementById("activity-chart");
     chart.innerHTML = "";
     for (let i = 4; i >= 0; i--) {
         const d = new Date(); d.setDate(d.getDate() - i);
         const ds = getISODate(d);
-        const val = appData.logs.filter(l =>
-            l.dateStr === ds &&
-            l.type !== LOG_TYPES.RETURNED &&
-            isVisibleLog(l)
-        ).length;
-
+        const v = appData.logs.filter(l => l.dateStr === ds && l.type !== LOG_TYPES.RETURNED).length;
         const bar = document.createElement("div");
-        bar.className = "chart-bar-wrapper";
-        bar.style.cssText = "flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;";
-        bar.innerHTML = `
-            <div style="width:70%; background:#FF8F3F; border-radius:4px 4px 0 0; height:${Math.min(val * 5 + 2, 100)}%; transition:height 0.3s"></div>
-            <div style="font-size:0.7em; margin-top:5px; color:#aaa">${ds.slice(8)}</div>
-            <div style="font-size:0.8em; font-weight:bold">${val}</div>
-        `;
+        bar.style.cssText = `width:18%; background:${v > 0 ? '#FF8F3F' : '#444'}; height:${Math.min(v * 5 + 5, 100)}%;`;
+        bar.title = `${ds}: ${v}`;
         chart.appendChild(bar);
     }
-
-    const container = document.getElementById("org-breakdown");
-    container.innerHTML = "";
-    appData.counters.forEach(c => {
-        const cLogs = todayLogs.filter(l => l.counterId === c.id && isVisibleLog(l));
-        const arr = cLogs.filter(l => l.type !== LOG_TYPES.RETURNED).length;
-        const ret = cLogs.filter(l => l.type === LOG_TYPES.RETURNED).length;
-        if (arr > 0 || ret > 0) {
-            container.innerHTML += `
-                <div class="registry-item" style="display:flex; justify-content:space-between">
-                    <span>${c.name}</span>
-                    <span>✅ ${arr} <span style="color:#e74c3c; margin-right:5px">⛔ ${ret}</span></span>
-                </div>`;
-        }
-    });
-}
-
-function importRegistryCSV(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        const lines = e.target.result.split('\n');
-        appData.registry = [];
-        lines.forEach(line => {
-            const cols = line.split(',');
-            if (cols.length >= 1 && cols[0].trim()) {
-                appData.registry.push({
-                    name: cols[0].replace(/"/g, '').trim(),
-                    id: cols[1]?.replace(/"/g, '').trim() || '',
-                    phone: cols[2]?.replace(/"/g, '').trim() || '',
-                    org: cols[3]?.replace(/"/g, '').trim() || ''
-                });
-            }
-        });
-        save();
-        filterRegistry();
-        alert("רשימה יובאה בהצלחה");
-    };
-    reader.readAsText(file);
-}
-
-function filterRegistry() {
-    const q = document.getElementById("registrySearch").value.toLowerCase();
-    const el = document.getElementById("registry-results");
-    el.innerHTML = "";
-    if (q.length < 2) { el.innerHTML = "<div style='text-align:center; padding:10px; color:#555'>הקלד לחיפוש...</div>"; return; }
-
-    const res = appData.registry.filter(i => i.name.toLowerCase().includes(q) || i.id.includes(q)).slice(0, 20);
-    res.forEach(item => {
-        el.innerHTML += `
-            <div class="registry-item">
-                <div style="color:var(--accent); font-weight:bold">${item.name}</div>
-                <div style="font-size:0.85em; color:#888">${item.id} | ${item.phone}</div>
-                <div style="font-size:0.8em">${item.org}</div>
-            </div>`;
-    });
-}
-
-function exportData(format) {
-    if (format === 'json') {
-        download(JSON.stringify(appData), `backup_${getISODate(new Date())}.json`, "application/json");
-    } else {
-        let csv = "\uFEFFDate,Time,Org,Type,Status\n";
-        appData.logs.forEach(l => {
-            const cName = appData.counters.find(c => c.id === l.counterId)?.name || "Unknown";
-            const time = new Date(l.timestamp).toLocaleTimeString();
-            csv += `${l.dateStr},${time},${cName},${l.type},${getTypeName(l.type)}\n`;
-        });
-        download(csv, `report_${getISODate(new Date())}.csv`, "text/csv");
-    }
-}
-
-function download(content, name, type) {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([content], { type: type }));
-    a.download = name;
-    a.click();
-}
-
-function importBackupJSON(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            appData = JSON.parse(e.target.result);
-            save(); alert("שוחזר בהצלחה!"); location.reload();
-        } catch (e) { alert("קובץ שגוי"); }
-    };
-    reader.readAsText(file);
-}
-
-function resetToday() {
-    if (confirm("לאפס את נתוני היום?")) {
-        const today = getISODate(new Date());
-        appData.logs = appData.logs.filter(l => l.dateStr !== today);
-        save(); location.reload();
-    }
-}
-function hardReset() {
-    if (confirm("מחיקת הכל?")) { localStorage.clear(); location.reload(); }
 }
 
 function shareWhatsApp() {
     const today = getISODate(new Date());
-    const logs = appData.logs.filter(l => l.dateStr === today);
-    let msg = `*דוח משאיות - ${today}*\n\n`;
-
+    let msg = `*דוח משאיות - ${today}*\n`;
     appData.counters.forEach(c => {
-        const cLogs = logs.filter(l => l.counterId === c.id && isVisibleLog(l));
-        const arr = cLogs.filter(l => l.type !== LOG_TYPES.RETURNED).length;
-        const ret = cLogs.filter(l => l.type === LOG_TYPES.RETURNED).length;
-        if (arr > 0 || ret > 0) {
-            msg += `*${c.name}:* ${arr}`;
-            if (ret > 0) msg += ` (הוחזרו: ${ret})`;
-            msg += `\n`;
-        }
+        const arr = appData.logs.filter(l => l.counterId === c.id && l.dateStr === today && l.type !== LOG_TYPES.RETURNED).length;
+        if (arr > 0) msg += `\n${c.name}: ${arr}`;
     });
-
-    const totalFiltered = logs.filter(l => l.type !== LOG_TYPES.RETURNED && isVisibleLog(l)).length;
-    msg += `\n*סה"כ כניסות: ${totalFiltered}*`;
-
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
 }
 
-function getISODate(d) { return d.toISOString().split('T')[0]; }
+function refreshUI() {
+    renderCounters();
+    updateLiveTotal();
+    if (document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
+}
+
 function switchTab(id) {
     document.querySelectorAll('.tab-content').forEach(d => d.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     document.querySelector(`button[onclick="switchTab('${id}')"]`).classList.add('active');
+    if (id === 'tab-registry') renderRegistryTab();
     if (id === 'tab-dashboard') renderDashboard();
 }
+
+function getISODate(d) { return d.toISOString().split('T')[0]; }
+
+function exportData(fmt) {
+    if (fmt === 'json') {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(appData)], { type: "application/json" }));
+        a.download = `backup_${getISODate(new Date())}.json`;
+        a.click();
+    } else {
+        alert("ייצוא לאקסל יגיע בגרסה הבאה (v3.8)");
+    }
+}
+function importBackupJSON(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try { appData = JSON.parse(e.target.result); save(); location.reload(); }
+        catch (e) { alert("קובץ לא תקין"); }
+    }
+    reader.readAsText(file);
+}
+function resetToday() { if (confirm("לאפס היום?")) { const t = getISODate(new Date()); appData.logs = appData.logs.filter(l => l.dateStr !== t); save(); location.reload(); } }
+function hardReset() { if (confirm("למחוק הכל?")) { localStorage.clear(); location.reload(); } }
 
 // Start
 init();
