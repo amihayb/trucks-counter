@@ -15,11 +15,12 @@
             return false;
         };
 
+        // Fallback safety function
         function forceSettingsMode(msg) {
-            // Updated in app.js - this is fallback
-            if (typeof toggleSettingsTab === 'function') {
-                toggleSettingsTab();
-            }
+            var tabs = document.querySelectorAll('.tab-content');
+            for (var i = 0; i < tabs.length; i++) { tabs[i].classList.remove('active'); }
+            var settings = document.getElementById('tab-settings');
+            if (settings) settings.classList.add('active');
             if (msg) alert(msg);
         }
     </script>
@@ -123,8 +124,7 @@
                         <button class="btn-text" onclick="toggleAllFiles(false)">הסר הכל</button>
                         <button class="btn-text text-red" onclick="deleteAllFiles()">מחק הכל</button>
                     </div>
-                    <div id="file-list-container">
-                    </div>
+                    <div id="file-list-container"></div>
                 </div>
             </div>
 
@@ -138,8 +138,7 @@
                             <th>טלפון</th>
                         </tr>
                     </thead>
-                    <tbody id="registry-table-body">
-                    </tbody>
+                    <tbody id="registry-table-body"></tbody>
                 </table>
                 <div id="registry-empty-state" class="empty-state" style="display:none">
                     אין נתונים להצגה
@@ -176,7 +175,7 @@
                     <button class="btn-danger" onclick="hardReset()">איפוס מלא (מחק הכל)</button>
                 </div>
 
-                <div class="version" style="text-align:center; color:#555; margin-top:20px;">TrucksLog v3.7 (Smart Lists)</div>
+                <div class="version" style="text-align:center; color:#555; margin-top:20px;">TrucksLog v3.7 (Fixed)</div>
             </div>
         </section>
     </main>

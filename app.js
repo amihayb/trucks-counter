@@ -2,13 +2,11 @@
    STATE MANAGEMENT & CONFIG
 ========================================================= */
 
-const APP_VERSION = "TrucksLog v3.7 (Smart Lists)";
+const APP_VERSION = "TrucksLog v3.7 (Final Defaults)";
 
 let appData = {
     counters: [],
     logs: [],
-    // Registry is now a list of File Objects
-    // Each Item: { id, fileName, fileDate, uploadTimestamp, isActive, data: [] }
     registryFiles: [],
     settings: {
         maxRegistryFiles: 7
@@ -21,36 +19,33 @@ const LOG_TYPES = {
     RETURNED: 'returned'
 };
 
-// SORT STATE
-let currentSort = { col: 'name', dir: 'asc' }; // 'asc' or 'desc'
+// UI STATE
+let currentSort = { col: 'name', dir: 'asc' };
+// Track the last active tab for the toggle button
+let lastActiveTab = 'tab-counters';
 
 /* =========================================================
    INIT & DATA LOADING
 ========================================================= */
 
 function init() {
-    // 1. Enforce Version Display
     const verEl = document.querySelector('.version');
     if (verEl) verEl.innerText = APP_VERSION;
 
-    // 2. Load Data
     try {
         const stored = localStorage.getItem("trucksLogData_v3");
         if (stored) {
             appData = JSON.parse(stored);
         } else {
-            // Try load v2 and migrate
             const oldStored = localStorage.getItem("trucksLogData_v2");
             if (oldStored) {
                 const oldData = JSON.parse(oldStored);
                 appData.counters = oldData.counters || [];
                 appData.logs = oldData.logs || [];
-                // MIGRATE OLD REGISTRY
                 if (oldData.registry && Array.isArray(oldData.registry) && oldData.registry.length > 0) {
                     migrateOldRegistry(oldData.registry);
                 }
             } else {
-                // Fresh Start
                 seedInitialData();
             }
         }
@@ -59,28 +54,34 @@ function init() {
         seedInitialData();
     }
 
-    // Ensure Settings Exist
     if (!appData.settings) appData.settings = { maxRegistryFiles: 7 };
 
     setupEventListeners();
     renderCounters();
     updateLiveTotal();
 
-    // Check active tab and render if needed
-    if (document.getElementById('tab-dashboard') && document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
-    if (document.getElementById('tab-registry') && document.getElementById('tab-registry').classList.contains('active')) renderRegistryTab();
+    // Restore logic
+    if (document.getElementById('tab-dashboard') && document.getElementById('tab-dashboard').classList.contains('active')) {
+        renderDashboard();
+        lastActiveTab = 'tab-dashboard';
+    } else if (document.getElementById('tab-registry') && document.getElementById('tab-registry').classList.contains('active')) {
+        renderRegistryTab();
+        lastActiveTab = 'tab-registry';
+    }
 }
 
 function seedInitialData() {
+    // UPDATED DEFAULT LIST
     appData.counters = [
-        { id: "c1", name: "WFP" },
-        { id: "c2", name: "סקטור" }
+        { id: "c1", name: "סקטור" },
+        { id: "c2", name: "WFP" },
+        { id: "c3", name: "מלגזנים" },
+        { id: "c4", name: "WCK" }
     ];
     save();
 }
 
 function migrateOldRegistry(oldList) {
-    // Convert flat list to a "File"
     const fileObj = {
         id: "legacy_" + Date.now(),
         fileName: "ארכיון ישן (ייבוא)",
@@ -100,7 +101,6 @@ function migrateOldRegistry(oldList) {
 }
 
 function setupEventListeners() {
-    // Modal Listeners
     const input = document.getElementById('edit-qty-input');
     if (input) {
         input.addEventListener("keyup", (e) => {
@@ -109,11 +109,10 @@ function setupEventListeners() {
         });
     }
 
-    // Registry Table Sort Listeners
     const ths = document.querySelectorAll('.registry-table th');
     if (ths.length >= 2) {
-        ths[0].onclick = () => sortRegistry('name'); // Name Header
-        ths[1].onclick = () => sortRegistry('id');   // ID Header
+        ths[0].onclick = () => sortRegistry('name');
+        ths[1].onclick = () => sortRegistry('id');
         ths[0].style.cursor = 'pointer';
         ths[1].style.cursor = 'pointer';
     }
@@ -127,7 +126,6 @@ function save() {
    REGISTRY: FILE MANAGEMENT
 ========================================================= */
 
-// 1. UPLOAD HANDLER
 function handleFilesUpload(input) {
     const files = Array.from(input.files);
     if (!files.length) return;
@@ -136,8 +134,8 @@ function handleFilesUpload(input) {
     const max = appData.settings.maxRegistryFiles || 7;
 
     if (currentCount + files.length > max) {
-        alert(`שגיאה: ניתן לשמור עד ${max} קבצים.\nיש למחוק קבצים ישנים לפני הוספת חדשים.`);
-        input.value = ""; // Reset
+        alert(`שגיאה: ניתן לשמור עד ${max} קבצים.`);
+        input.value = "";
         return;
     }
 
@@ -153,20 +151,18 @@ function handleFilesUpload(input) {
             const content = e.target.result;
             const parsedData = smartParseCSV(content, file.name);
 
-            // Guess Date from filename
             const dateMatch = file.name.match(/(\d{1,2})[.-](\d{1,2})[.-](\d{2,4})/);
-            let fileDateStr = getISODate(new Date()).split('-').reverse().join('/'); // Default today
+            let fileDateStr = getISODate(new Date()).split('-').reverse().join('/');
             if (dateMatch) {
-                fileDateStr = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`; // DD/MM/YYYY
+                fileDateStr = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
             }
 
             const newFileObj = {
-                // FIXED: Replaced substr with substring
                 id: "file_" + Date.now() + Math.random().toString(36).substring(2, 7),
                 fileName: file.name,
                 fileDate: fileDateStr,
                 uploadTimestamp: Date.now(),
-                isActive: true, // Auto select new files
+                isActive: true,
                 data: parsedData
             };
 
@@ -176,7 +172,6 @@ function handleFilesUpload(input) {
             if (processed === files.length) {
                 save();
                 renderRegistryTab();
-                // Open drawer to show success
                 document.getElementById('files-drawer').classList.add('open');
                 input.value = "";
             }
@@ -185,12 +180,10 @@ function handleFilesUpload(input) {
     });
 }
 
-// 2. PARSER ENGINE
 function smartParseCSV(csvText, filename) {
     const lines = csvText.split(/\r\n|\n/);
     if (lines.length < 2) return [];
 
-    // DETECT TYPE: "Messy UN" vs "Standard"
     const headerLine = lines[0] + (lines[1] || "");
     const isMessy = !headerLine.match(/(שם|Name|ת"ז|ID|טלפון|Phone|משאית|Plate|ארגון|Org|ספק)/i);
 
@@ -204,7 +197,6 @@ function smartParseCSV(csvText, filename) {
 function parseStandardFile(lines) {
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
 
-    // Map Indices
     let idxName = -1, idxId = -1, idxPhone = -1, idxOrg = -1, idxPlate = -1;
 
     headers.forEach((h, i) => {
@@ -217,12 +209,10 @@ function parseStandardFile(lines) {
 
     const results = [];
 
-    // Start from line 1 (skip header)
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Handle CSV split
         const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/"/g, ''));
 
         let name = idxName > -1 ? cols[idxName] : "";
@@ -233,14 +223,10 @@ function parseStandardFile(lines) {
         let trailer = "";
         let extra = [];
 
-        // --- SMART FIXES ---
-
-        // 1. Swap Check: Phone vs Plate
         if (isLikelyPlate(phone) && isLikelyPhone(truck)) {
             let temp = phone; phone = truck; truck = temp;
         }
 
-        // 2. Fallback scan
         if (!idVal || !phone || !truck) {
             cols.forEach((col, idx) => {
                 if (idx === idxName) return;
@@ -252,7 +238,6 @@ function parseStandardFile(lines) {
             });
         }
 
-        // Also collect extra info from non-mapped columns if standard parsing used
         if (extra.length === 0) {
             cols.forEach((col, idx) => {
                 if ([idxName, idxId, idxPhone, idxOrg, idxPlate].includes(idx)) return;
@@ -287,15 +272,18 @@ function parseMessyFile(lines) {
         let name = cols[1] || "";
         let idVal = cols[2] || "";
 
-        if (!name) continue;
+        // UNOPS & BAD ID FIX
+        const isBadId = !idVal || idVal.toUpperCase().includes("UNOPS") || idVal.length < 5;
 
-        if (!idVal) {
-            const match = name.match(/(\d{9}|UN\d+|SUNJ\d+|AUN\d+)/i);
+        if (isBadId) {
+            const match = name.match(/(SUNJ\d+|UN\d+|AUN\d+|\d{9})/i);
             if (match) {
                 idVal = match[0];
-                name = name.replace(match[0], '').trim();
+                name = name.replace(match[0], '').replace(/#|:/g, '').trim();
             }
         }
+
+        if (!name) continue;
 
         let org = "פרטי";
         const lineStr = line.toUpperCase();
@@ -315,7 +303,7 @@ function parseMessyFile(lines) {
     return results;
 }
 
-// --- HELPER VALIDATORS ---
+// ... HELPER VALIDATORS ...
 
 function isLikelyPhone(str) {
     if (!str) return false;
@@ -357,9 +345,8 @@ function formatPlate(raw) {
     return raw;
 }
 
-
 /* =========================================================
-   REGISTRY: UI & INTERACTIONS
+   REGISTRY UI
 ========================================================= */
 
 function renderRegistryTab() {
@@ -367,34 +354,28 @@ function renderRegistryTab() {
     filterRegistry();
 }
 
-// 1. DRAWER (File List)
 function renderRegistryFilesList() {
     const container = document.getElementById('file-list-container');
     const summary = document.getElementById('files-summary-text');
     if (!container) return;
 
     container.innerHTML = "";
-
-    // Sort files by Upload Timestamp (Newest first)
     appData.registryFiles.sort((a, b) => b.uploadTimestamp - a.uploadTimestamp);
-
     const count = appData.registryFiles.length;
     summary.innerText = `📂 ${count} קבצים טעונים`;
 
-    appData.registryFiles.forEach((file, idx) => {
+    appData.registryFiles.forEach((file) => {
         const div = document.createElement('div');
         div.className = 'file-item';
         div.innerHTML = `
             <input type="checkbox" ${file.isActive ? 'checked' : ''} 
                    onchange="toggleFileActive('${file.id}')" style="margin-left:10px; transform:scale(1.2);">
-            
             <div class="file-info" onclick="filterBySingleFile('${file.id}')">
                 <div>
                     <div class="file-name">${file.fileName}</div>
                     <div class="file-date">תאריך: ${file.fileDate}</div>
                 </div>
             </div>
-
             <button class="file-delete-btn text-red" onclick="deleteRegistryFile('${file.id}')">🗑️</button>
         `;
         container.appendChild(div);
@@ -426,34 +407,27 @@ function deleteRegistryFile(fileId) {
 }
 
 function deleteAllFiles() {
-    if (confirm("האם אתה בטוח? פעולה זו תמחק את כל הרשימות.")) {
+    if (confirm("האם אתה בטוח?")) {
         appData.registryFiles = [];
         save(); renderRegistryTab();
     }
 }
 
-// 2. TABLE RENDERING & FILTER
 function filterRegistry() {
     const q = document.getElementById("registrySearch").value.toLowerCase();
     const tbody = document.getElementById('registry-table-body');
     const emptyState = document.getElementById('registry-empty-state');
 
     tbody.innerHTML = "";
-
     let allRows = [];
 
-    // Iterate active files
     appData.registryFiles.filter(f => f.isActive).forEach(file => {
-        // Prepare timestamp string for search
         const tsDate = new Date(file.uploadTimestamp);
         const timeStr = tsDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
         file.data.forEach(row => {
-            // FIX: Search now includes Dates, Filename, and Extra info
             const txt = `${row.name} ${row.id} ${row.truck} ${row.org} ${row.extra} ${file.fileName} ${file.fileDate} ${timeStr}`.toLowerCase();
-
             if (q === "" || txt.includes(q)) {
-                // Attach metadata for display
                 row._metaDate = file.fileDate;
                 row._metaFile = file.fileName;
                 row._uploadTs = file.uploadTimestamp;
@@ -468,7 +442,6 @@ function filterRegistry() {
     }
     emptyState.style.display = "none";
 
-    // Sort
     allRows.sort((a, b) => {
         let valA = (a[currentSort.col] || "").toString();
         let valB = (b[currentSort.col] || "").toString();
@@ -476,16 +449,13 @@ function filterRegistry() {
         else return valB.localeCompare(valA);
     });
 
-    // Render limit
     const limit = q === "" ? 100 : 500;
 
     allRows.slice(0, limit).forEach(row => {
-        // FIXED: Replaced substr with substring
         const rowId = "r_" + Math.random().toString(36).substring(2, 11);
         const tsDate = new Date(row._uploadTs);
         const timeStr = tsDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
-        // Main Row
         const tr = document.createElement('tr');
         tr.className = 'row-main';
         tr.onclick = () => toggleRowDetails(rowId);
@@ -497,7 +467,6 @@ function filterRegistry() {
         `;
         tbody.appendChild(tr);
 
-        // Expanded Row
         const trExp = document.createElement('tr');
         trExp.className = 'row-expanded';
         trExp.id = rowId;
@@ -537,7 +506,6 @@ function toggleRowDetails(id) {
     else el.classList.add('open');
 }
 
-// 3. SORTING
 function sortRegistry(colName) {
     if (currentSort.col === colName) {
         currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
@@ -548,7 +516,6 @@ function sortRegistry(colName) {
     filterRegistry();
 }
 
-// 4. VOICE SEARCH
 function startVoiceSearch() {
     if (!('webkitSpeechRecognition' in window)) {
         alert("הדפדפן שלך לא תומך בחיפוש קולי");
@@ -571,7 +538,6 @@ function startVoiceSearch() {
     recognition.onend = () => btn.style.color = '';
 }
 
-// 5. QUICK FILTER
 function filterBySingleFile(fileId) {
     appData.registryFiles.forEach(f => f.isActive = (f.id === fileId));
     save();
@@ -581,7 +547,7 @@ function filterBySingleFile(fileId) {
 }
 
 /* =========================================================
-   SETTINGS & HELPERS
+   SETTINGS & TABS
 ========================================================= */
 
 function updateMaxFilesSetting(val) {
@@ -589,7 +555,31 @@ function updateMaxFilesSetting(val) {
     save();
 }
 
-// ... COUNTER LOGIC (Standard) ...
+function toggleSettingsTab() {
+    const settingsTab = document.getElementById('tab-settings');
+    if (settingsTab.classList.contains('active')) {
+        switchTab(lastActiveTab || 'tab-counters');
+    } else {
+        const current = document.querySelector('.tab-content.active');
+        if (current && current.id !== 'tab-settings') lastActiveTab = current.id;
+        document.querySelectorAll('.tab-content').forEach(d => d.classList.remove('active'));
+        settingsTab.classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    }
+}
+
+function switchTab(id) {
+    if (id !== 'tab-settings') lastActiveTab = id;
+    document.querySelectorAll('.tab-content').forEach(d => d.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`button[onclick="switchTab('${id}')"]`);
+    if (btn) btn.classList.add('active');
+    if (id === 'tab-registry') renderRegistryTab();
+    if (id === 'tab-dashboard') renderDashboard();
+}
+
+// ... COUNTER LOGIC ...
 
 function addLog(counterId, type) {
     const now = new Date();
@@ -810,15 +800,6 @@ function refreshUI() {
     if (document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
 }
 
-function switchTab(id) {
-    document.querySelectorAll('.tab-content').forEach(d => d.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-    document.querySelector(`button[onclick="switchTab('${id}')"]`).classList.add('active');
-    if (id === 'tab-registry') renderRegistryTab();
-    if (id === 'tab-dashboard') renderDashboard();
-}
-
 function getISODate(d) { return d.toISOString().split('T')[0]; }
 
 function exportData(fmt) {
@@ -844,5 +825,4 @@ function importBackupJSON(input) {
 function resetToday() { if (confirm("לאפס היום?")) { const t = getISODate(new Date()); appData.logs = appData.logs.filter(l => l.dateStr !== t); save(); location.reload(); } }
 function hardReset() { if (confirm("למחוק הכל?")) { localStorage.clear(); location.reload(); } }
 
-// Start
 init();

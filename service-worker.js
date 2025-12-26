@@ -1,4 +1,4 @@
-const CACHE_NAME = "trucks-log-v3.7";
+const CACHE_NAME = "trucks-log-v3.7-fix-nav-parser";
 const FILES_TO_CACHE = [
     "./",
     "./index.html",
