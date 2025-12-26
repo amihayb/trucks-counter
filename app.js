@@ -13,6 +13,8 @@ let appData = {
     }
 };
 
+let lastActiveTab = 'tab-counters';
+
 const LOG_TYPES = {
     APPROVED: 'approved',
     EMPTY: 'empty',
