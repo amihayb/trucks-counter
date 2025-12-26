@@ -1,4 +1,4 @@
-const CACHE_NAME = "trucks-log-v3.7-fix-nav-parser";
+const CACHE_NAME = "trucks-log-v3.8-ux";
 const FILES_TO_CACHE = [
     "./",
     "./index.html",
@@ -44,7 +44,6 @@ self.addEventListener("activate", (event) => {
 
 /* =========================================================
    FETCH: Network First, Fallback to Cache
-   (This strategy helps see updates faster)
 ========================================================= */
 self.addEventListener("fetch", (event) => {
     event.respondWith(
