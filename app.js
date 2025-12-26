@@ -2,18 +2,21 @@
    STATE MANAGEMENT & CONFIG
 ========================================================= */
 
-const APP_VERSION = "TrucksLog v3.7 (Final Defaults)";
+const APP_VERSION = "TrucksLog v3.8 (UX)";
+
+// SHORT "CLICK" SOUND (Base64 encoded)
+const CLICK_SOUND = new Audio("data:audio/wav;base64,UklGRiQtAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTgtAACAgICAgICAgICAgICAgICAgICAgICAgICAf3hxeHCAgIB/fHd2eIB+fHh3eICAgIA=");
 
 let appData = {
     counters: [],
     logs: [],
     registryFiles: [],
     settings: {
-        maxRegistryFiles: 7
+        maxRegistryFiles: 7,
+        soundVolume: 0,       // 0-100 (Default: 0/Off)
+        vibrateEnabled: false // Default: Off
     }
 };
-
-let lastActiveTab = 'tab-counters';
 
 const LOG_TYPES = {
     APPROVED: 'approved',
@@ -23,7 +26,6 @@ const LOG_TYPES = {
 
 // UI STATE
 let currentSort = { col: 'name', dir: 'asc' };
-// Track the last active tab for the toggle button
 let lastActiveTab = 'tab-counters';
 
 /* =========================================================
@@ -56,13 +58,29 @@ function init() {
         seedInitialData();
     }
 
+    // Ensure Settings Exist
     if (!appData.settings) appData.settings = { maxRegistryFiles: 7 };
+
+    // Migration: Ensure new UX settings exist
+    if (appData.settings.soundVolume === undefined) appData.settings.soundVolume = 0;
+    if (appData.settings.vibrateEnabled === undefined) appData.settings.vibrateEnabled = false;
+
+    // UI: Set Inputs based on data
+    const volSlider = document.getElementById('setting-sound-vol');
+    const volText = document.getElementById('vol-value');
+    const vibrateToggle = document.getElementById('setting-vibrate-toggle');
+
+    if (volSlider) {
+        volSlider.value = appData.settings.soundVolume;
+        if (volText) volText.innerText = appData.settings.soundVolume + '%';
+    }
+    if (vibrateToggle) vibrateToggle.checked = appData.settings.vibrateEnabled;
 
     setupEventListeners();
     renderCounters();
     updateLiveTotal();
 
-    // Restore logic
+    // Restore active tab
     if (document.getElementById('tab-dashboard') && document.getElementById('tab-dashboard').classList.contains('active')) {
         renderDashboard();
         lastActiveTab = 'tab-dashboard';
@@ -73,7 +91,6 @@ function init() {
 }
 
 function seedInitialData() {
-    // UPDATED DEFAULT LIST
     appData.counters = [
         { id: "c1", name: "סקטור" },
         { id: "c2", name: "WFP" },
@@ -102,7 +119,12 @@ function migrateOldRegistry(oldList) {
     save();
 }
 
+/* =========================================================
+   EVENT LISTENERS & UX FEEDBACK
+========================================================= */
+
 function setupEventListeners() {
+    // 1. Modal Input
     const input = document.getElementById('edit-qty-input');
     if (input) {
         input.addEventListener("keyup", (e) => {
@@ -111,6 +133,7 @@ function setupEventListeners() {
         });
     }
 
+    // 2. Registry Headers
     const ths = document.querySelectorAll('.registry-table th');
     if (ths.length >= 2) {
         ths[0].onclick = () => sortRegistry('name');
@@ -118,6 +141,51 @@ function setupEventListeners() {
         ths[0].style.cursor = 'pointer';
         ths[1].style.cursor = 'pointer';
     }
+
+    // 3. GLOBAL FEEDBACK LISTENER
+    document.body.addEventListener('click', (e) => {
+        // Detect click on interactive elements
+        // Also include input[type="range"] so user gets feedback when dropping the slider handle
+        const target = e.target.closest('button, .nav-item, .fab-add, .fab-whatsapp, .header-title, input[type="checkbox"], input[type="range"]');
+
+        // Note: For the range slider, 'change'/'input' events handle the specific volume preview, 
+        // but this ensures generic clicks also feel responsive if needed.
+        // We filter out the slider itself here to avoid double-beeping when dragging, 
+        // leaving the specific handler to do the work.
+        if (target && target.type !== 'range') {
+            triggerFeedback();
+        }
+    });
+}
+
+// THE FEEDBACK FUNCTION
+function triggerFeedback() {
+    // 1. Vibrate
+    if (appData.settings.vibrateEnabled && navigator.vibrate) {
+        navigator.vibrate(40);
+    }
+
+    // 2. Sound (Volume Control)
+    const vol = parseInt(appData.settings.soundVolume); // 0-100
+    if (!isNaN(vol) && vol > 0) {
+        const soundClone = CLICK_SOUND.cloneNode();
+        soundClone.volume = vol / 100; // Convert 0-100 to 0.0-1.0
+        soundClone.play().catch(e => { /* Ignore auto-play errors */ });
+    }
+}
+
+// SETTINGS HANDLERS
+function updateSoundVolume(val) {
+    appData.settings.soundVolume = parseInt(val);
+    save();
+    // Play sound immediately to demonstrate volume
+    triggerFeedback();
+}
+
+function toggleVibrateSetting(isChecked) {
+    appData.settings.vibrateEnabled = isChecked;
+    save();
+    if (isChecked) triggerFeedback();
 }
 
 function save() {
@@ -274,7 +342,6 @@ function parseMessyFile(lines) {
         let name = cols[1] || "";
         let idVal = cols[2] || "";
 
-        // UNOPS & BAD ID FIX
         const isBadId = !idVal || idVal.toUpperCase().includes("UNOPS") || idVal.length < 5;
 
         if (isBadId) {

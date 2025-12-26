@@ -15,7 +15,6 @@
             return false;
         };
 
-        // Fallback safety function
         function forceSettingsMode(msg) {
             var tabs = document.querySelectorAll('.tab-content');
             for (var i = 0; i < tabs.length; i++) { tabs[i].classList.remove('active'); }
@@ -161,6 +160,30 @@
                 </div>
 
                 <div class="settings-group">
+                    <h3>הגדרות ממשק</h3>
+
+                    <div style="border: 1px solid #444; border-radius: 8px; padding: 15px; background: rgba(255,255,255,0.03);">
+                        <h4 style="margin-top: 0; margin-bottom: 15px; font-size: 0.95rem; color: #FFA565; border-bottom: 1px solid #333; padding-bottom: 5px;">הרעש של נצר</h4>
+
+                        <div class="setting-row" style="margin-bottom: 20px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <label for="setting-sound-vol">🔊 עוצמת צליל</label>
+                                <span id="vol-value" style="color:#FFA565; font-weight:bold; font-size:0.9rem;">0%</span>
+                            </div>
+                            <input type="range" id="setting-sound-vol" min="0" max="100" step="10" value="0"
+                                   oninput="document.getElementById('vol-value').innerText = this.value + '%'"
+                                   onchange="updateSoundVolume(this.value)"
+                                   style="width:100%; cursor:pointer;">
+                        </div>
+
+                        <div class="setting-row" style="display:flex; justify-content:space-between; align-items:center;">
+                            <label for="setting-vibrate-toggle">📳 רטט בלחיצה</label>
+                            <input type="checkbox" id="setting-vibrate-toggle" onchange="toggleVibrateSetting(this.checked)" style="transform:scale(1.5); margin-left:5px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
                     <h3>ניהול נתונים</h3>
                     <button class="btn-action" onclick="exportData('csv')">📄 הורד דוח לאקסל</button>
                     <button class="btn-action" onclick="exportData('json')">💾 גיבוי מלא (JSON)</button>
@@ -175,7 +198,7 @@
                     <button class="btn-danger" onclick="hardReset()">איפוס מלא (מחק הכל)</button>
                 </div>
 
-                <div class="version" style="text-align:center; color:#555; margin-top:20px;">TrucksLog v3.7 (Fixed)</div>
+                <div class="version" style="text-align:center; color:#555; margin-top:20px;">TrucksLog v3.8 (UX)</div>
             </div>
         </section>
     </main>
